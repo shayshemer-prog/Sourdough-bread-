@@ -66,29 +66,38 @@
             border-radius: 8px;
             padding: 12px;
             margin-top: 10px;
-            display: none;
-        }
-
-        .global-timers-section.has-timers {
             display: block;
         }
 
         .global-timers-title {
-            font-size: 0.9em;
+            font-size: 1em;
             font-weight: 600;
-            margin-bottom: 8px;
             opacity: 0.95;
         }
 
         .global-timer-item {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 6px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             margin-bottom: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.85em;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .global-timer-item:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .global-timer-item.active {
+            background: rgba(255, 255, 255, 0.35);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         .global-timer-item:last-child {
@@ -118,32 +127,52 @@
             border-radius: 0 0 12px 12px;
         }
 
-        .sticky-bread-selector .bread-selector {
-            margin-bottom: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 15px;
-        }
-
-        .sticky-bread-selector .bread-selector h3 {
-            font-size: 1em;
-            margin-bottom: 10px;
+        .sticky-bread-selector h3 {
+            font-size: 1.1em;
+            margin: 0 0 10px 0;
+            color: #5d4037;
         }
 
         .sticky-bread-selector .bread-item {
-            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
             margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sticky-bread-selector .bread-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        }
+
+        .sticky-bread-selector .bread-item.active {
+            background: linear-gradient(135deg, #fff9e6 0%, #ffe4b3 100%);
+            border: 2px solid #d4a574;
         }
 
         .sticky-bread-selector .bread-name {
-            font-size: 0.95em;
+            font-size: 1em;
+            font-weight: 600;
         }
 
         .sticky-bread-selector .bread-progress {
-            font-size: 0.8em;
+            font-size: 0.85em;
+            color: #666;
         }
 
-        .sticky-bread-selector .recipe-loader {
-            display: none;
+        .sticky-bread-selector .btn-delete {
+            padding: 6px 10px;
+            font-size: 1.2em;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .sticky-bread-selector .btn-delete:hover {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: rgba(244, 67, 54, 0.5);
         }
         
         .progress-bar {
@@ -592,7 +621,12 @@
             <div class="progress-fill" id="progressBar"></div>
         </div>
         <div class="global-timers-section" id="globalTimersSection">
-            <div class="global-timers-title">⏱️ טיימרים פעילים:</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="global-timers-title">🍞 הלחמים שלי</div>
+                <button class="btn btn-success" onclick="createNewBread()" style="padding: 6px 12px; font-size: 0.85em;">
+                    ➕ לחם חדש
+                </button>
+            </div>
             <div id="globalTimersList"></div>
         </div>
     </div>
@@ -624,7 +658,7 @@
             {
                 title: "הוספת שאור ומלח",
                 content: "הוסיפו את השאור הפעיל והמלח לבצק. השתמשו ב-25 גרם המים הנותרים כדי לסייע בהמסת המלח. לחצו הכל ביחד עם הידיים עד שהכל משולב לחלוטין - זה יהיה דביק ומבולגן!",
-                timer: null,
+                timer: { duration: 2, label: "ערבוב שאור ומלח" },
                 tips: "הרטיבו את הידיים כדי למנוע הידבקות. הבצק יהיה פרוע בהתחלה - זה נורמלי."
             },
             {
@@ -709,6 +743,7 @@
         let breads = {};
         let currentBreadId = null;
         let timerUpdateInterval = null;
+        let breadCounter = 0; // Track the highest bread number ever created
 
         function getCurrentBread() {
             if (!currentBreadId || !breads[currentBreadId]) {
@@ -719,58 +754,64 @@
 
         function updateActiveTimersIndicator() {
             const indicator = document.getElementById('activeTimersIndicator');
-            const globalTimersSection = document.getElementById('globalTimersSection');
             const globalTimersList = document.getElementById('globalTimersList');
 
-            if (!indicator || !globalTimersSection || !globalTimersList) return;
+            if (!indicator || !globalTimersList) return;
 
             let activeCount = 0;
-            const timerData = [];
 
+            // Count active timers for the indicator
             Object.values(breads).forEach(bread => {
                 Object.entries(bread.timers).forEach(([timerId, timer]) => {
                     if (timer.running) {
                         activeCount++;
-                        const stepMatch = timerId.match(/timer-(\d+)/);
-                        const stepIndex = stepMatch ? parseInt(stepMatch[1]) : 0;
-                        const stepLabel = recipeSteps[stepIndex]?.timer?.label || 'טיימר';
-
-                        timerData.push({
-                            breadName: bread.name,
-                            stepLabel: stepLabel,
-                            timerId: timerId,
-                            breadId: bread.id
-                        });
                     }
                 });
             });
 
+            // Update indicator
             if (activeCount > 0) {
                 indicator.innerHTML = `<span class="timer-pulse"></span> ${activeCount} טיימר${activeCount > 1 ? 'ים' : ''} פעיל${activeCount > 1 ? 'ים' : ''}`;
                 indicator.style.display = 'flex';
-
-                // Build HTML with data attributes for real-time updates
-                let timersHTML = '';
-                timerData.forEach(data => {
-                    const timer = breads[data.breadId].timers[data.timerId];
-                    const remaining = getTimerRemaining(timer);
-                    timersHTML += `
-                        <div class="global-timer-item" data-bread-id="${data.breadId}" data-timer-id="${data.timerId}">
-                            <div class="global-timer-label">
-                                <span class="timer-pulse"></span>
-                                <span>${data.breadName} - ${data.stepLabel}</span>
-                            </div>
-                            <div class="global-timer-time">${formatTime(remaining)}</div>
-                        </div>
-                    `;
-                });
-
-                globalTimersList.innerHTML = timersHTML;
-                globalTimersSection.classList.add('has-timers');
             } else {
                 indicator.style.display = 'none';
-                globalTimersSection.classList.remove('has-timers');
             }
+
+            // Build HTML for ALL breads (not just those with timers)
+            let breadsHTML = '';
+            Object.values(breads).forEach(bread => {
+                const isActive = bread.id === currentBreadId;
+                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+                const stepName = recipeSteps[bread.currentStep]?.title || '';
+
+                // Get active timer info
+                let timerInfo = '';
+                Object.entries(bread.timers).forEach(([timerId, timer]) => {
+                    if (timer.running) {
+                        const remaining = getTimerRemaining(timer);
+                        timerInfo = `<div class="global-timer-time">⏱️ ${formatTime(remaining)}</div>`;
+                    }
+                });
+
+                breadsHTML += `
+                    <div class="global-timer-item ${isActive ? 'active' : ''}" data-bread-id="${bread.id}" onclick="switchBread('${bread.id}')">
+                        <div style="flex: 1;">
+                            <div class="global-timer-label">
+                                <span style="font-weight: 600;">${bread.name}</span>
+                            </div>
+                            <div style="font-size: 0.85em; color: rgba(255,255,255,0.8); margin-top: 2px;">
+                                ${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}: ${stepName}
+                            </div>
+                        </div>
+                        ${timerInfo}
+                        <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${bread.id}')" style="margin-right: 8px; padding: 4px 8px; font-size: 1.1em;">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            });
+
+            globalTimersList.innerHTML = breadsHTML;
         }
 
         function updateGlobalTimersDisplay() {
@@ -831,19 +872,21 @@
                                 <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
                                 ${timerInfo}
                             </div>
-                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️ מחק</button>
+                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️</button>
                         </div>
                     </div>
                 `;
             }).join('');
 
             return `
-                <div class="bread-selector">
-                    <h3>הלחמים שלי:</h3>
+                <div class="sticky-bread-selector">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0;">הלחמים שלי:</h3>
+                        <button class="btn btn-success" onclick="createNewBread()" style="padding: 6px 12px; font-size: 0.9em;">
+                            ➕ לחם חדש
+                        </button>
+                    </div>
                     ${breadList}
-                    <button class="btn btn-success" onclick="createNewBread()" style="margin-top: 10px; width: 100%;">
-                        ➕ התחל לחם חדש
-                    </button>
                 </div>
             `;
         }
@@ -910,15 +953,8 @@
 
             updateActiveTimersIndicator();
 
-            // Render sticky bread selector first
-            const stickySelector = `
-                <div class="sticky-bread-selector">
-                    ${renderCompactBreadSelector()}
-                </div>
-            `;
-
             if (currentStep >= recipeSteps.length) {
-                container.innerHTML = stickySelector + `
+                container.innerHTML = `
                     <div class="step-card completion">
                         <div class="completion-icon">🎉</div>
                         <h2>כל הכבוד!</h2>
@@ -927,55 +963,12 @@
                         <button class="btn btn-success" onclick="confirmDeleteBread('${currentBreadId}')" style="margin-top: 30px;">
                             ✅ סיימתי - מחק לחם זה
                         </button>
-                        <button class="btn btn-back" onclick="viewAllBreads()" style="width: 100%;">
-                            ← חזור לרשימת הלחמים
-                        </button>
                     </div>
                 `;
                 return;
             }
 
-            // Build list of all active timers for this bread
-            let allActiveTimersHtml = '';
-            const activeTimersList = [];
-            Object.entries(bread.timers).forEach(([timerId, timer]) => {
-                if (timer.running) {
-                    const stepMatch = timerId.match(/timer-(\d+)/);
-                    const stepIndex = stepMatch ? parseInt(stepMatch[1]) : 0;
-                    const stepLabel = recipeSteps[stepIndex]?.timer?.label || recipeSteps[stepIndex]?.title || 'טיימר';
-                    const remaining = getTimerRemaining(timer);
-                    activeTimersList.push({
-                        timerId,
-                        stepIndex,
-                        stepLabel,
-                        remaining
-                    });
-                }
-            });
-
-            if (activeTimersList.length > 0) {
-                allActiveTimersHtml = `
-                    <div class="all-active-timers">
-                        <h4>⏱️ טיימרים פעילים ללחם זה:</h4>
-                        ${activeTimersList.map(t => `
-                            <div class="active-timer-item">
-                                <span>שלב ${t.stepIndex + 1}: ${t.stepLabel}</span>
-                                <span class="active-timer-time" id="active-${bread.id}-${t.timerId}">${formatTime(t.remaining)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            let html = stickySelector + `
-                <div class="bread-header">
-                    <strong>🍞 ${bread.name}</strong>
-                    <div>
-                        <button class="btn-delete" onclick="confirmDeleteBread('${currentBreadId}')" style="margin-left: 10px;">🗑️ מחק לחם</button>
-                        <button class="btn-small" onclick="viewAllBreads()">← כל הלחמים</button>
-                    </div>
-                </div>
-                ${allActiveTimersHtml}
+            let html = `
                 <div class="step-card">
                     <div class="step-header">
                         <div class="step-number">${currentStep + 1}</div>
@@ -1354,10 +1347,10 @@
 
         function createNewBread() {
             const breadId = 'bread-' + Date.now();
-            const breadNumber = Object.keys(breads).length + 1;
+            breadCounter++; // Increment the counter for each new bread
             breads[breadId] = {
                 id: breadId,
-                name: `לחם #${breadNumber}`,
+                name: `לחם #${breadCounter}`,
                 currentStep: 0,
                 timers: {},
                 createdAt: Date.now()
@@ -1385,6 +1378,21 @@
                         }
                     }
                 }
+            }
+
+            saveProgress();
+            renderStep();
+        }
+
+        function jumpToTimer(breadId, timerId) {
+            // Switch to the bread
+            currentBreadId = breadId;
+
+            // Extract step index from timerId (format: "timer-3")
+            const stepMatch = timerId.match(/timer-(\d+)/);
+            if (stepMatch && breads[breadId]) {
+                const stepIndex = parseInt(stepMatch[1]);
+                breads[breadId].currentStep = stepIndex;
             }
 
             saveProgress();
@@ -1449,7 +1457,8 @@
         function saveProgress() {
             localStorage.setItem('sourdoughProgress', JSON.stringify({
                 breads,
-                currentBreadId
+                currentBreadId,
+                breadCounter
             }));
         }
 
@@ -1463,6 +1472,7 @@
                     if (data.breads) {
                         breads = data.breads;
                         currentBreadId = data.currentBreadId || null;
+                        breadCounter = data.breadCounter || Object.keys(data.breads).length;
                     } else if (data.currentStep !== undefined) {
                         // Migrate old single-bread format
                         const breadId = 'bread-' + Date.now();
@@ -1474,6 +1484,7 @@
                             createdAt: Date.now()
                         };
                         currentBreadId = breadId;
+                        breadCounter = 1;
                     }
                 } catch (e) {
                     console.error('Failed to load progress:', e);
