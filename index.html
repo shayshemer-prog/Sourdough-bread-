@@ -155,6 +155,54 @@
             text-align: center;
             margin: 10px 0;
             font-variant-numeric: tabular-nums;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .timer-display:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-display input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+            font-variant-numeric: tabular-nums;
+            outline: none;
+        }
+
+        .timer-adjust {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .btn-adjust {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+
+        .btn-adjust:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-adjust:active {
+            transform: scale(0.95);
         }
         
         .timer-label {
@@ -251,7 +299,7 @@
         .hidden {
             display: none;
         }
-        
+
         .temperature {
             background: #e8f5e9;
             border-left: 4px solid #4caf50;
@@ -260,6 +308,84 @@
             margin: 10px 0;
             font-weight: 500;
             color: #2e7d32;
+        }
+
+        .bread-selector {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .bread-selector h3 {
+            color: #8B4513;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .bread-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .bread-item:hover {
+            background: #e9ecef;
+            transform: translateX(-5px);
+        }
+
+        .bread-item.active {
+            background: linear-gradient(135deg, #fff9e6 0%, #ffe6cc 100%);
+            border-color: #8B4513;
+        }
+
+        .bread-name {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .bread-progress {
+            color: #777;
+            font-size: 0.9em;
+        }
+
+        .bread-header {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1em;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            background: #95a5a6;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-small:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-small:active {
+            transform: scale(0.95);
         }
         
         @media (max-width: 480px) {
@@ -298,7 +424,7 @@
     </div>
 
     <script>
-        const recipeSteps = [
+        const defaultRecipe = [
             {
                 title: "הכנת השאור",
                 content: "ודאו ששאור המחמצת שלכם פעיל ומבעבע. הוא צריך להכפיל את עצמו בגודל ולעבור את מבחן הציפה (כפית שאור צפה במים).",
@@ -324,11 +450,39 @@
                 tips: "הרטיבו את הידיים כדי למנוע הידבקות. הבצק יהיה פרוע בהתחלה - זה נורמלי."
             },
             {
-                title: "תסיסה ראשונית - מתיחה וקיפול",
-                content: "עכשיו מתחילה התסיסה הראשונית! במהלך 3-4 השעות הבאות, בצעו 4 סטים של מתיחה וקיפול, במרווחים של 30 דקות. לביצוע מתיחה וקיפול: הרטיבו את הידיים, אחזו בצד אחד של הבצק, מתחו אותו למעלה, וקפלו אותו. סובבו את הקערה 90 מעלות וחזרו 4 פעמים.",
-                timer: { duration: 30, label: "מתיחה וקיפול הבא", repeatable: true },
+                title: "מתיחה וקיפול #1",
+                content: "עכשיו מתחילה התסיסה הראשונית! בצעו את סט המתיחה והקיפול הראשון: הרטיבו את הידיים, אחזו בצד אחד של הבצק, מתחו אותו למעלה, וקפלו אותו. סובבו את הקערה 90 מעלות וחזרו 4 פעמים (צפון, דרום, מזרח, מערב).",
+                timer: { duration: 30, label: "עד מתיחה וקיפול #2" },
                 temperature: "שמרו בטמפרטורה של 24-26°C. חם יותר = תסיסה מהירה יותר.",
-                tips: "אחרי 4 סטים של מתיחה וקיפול, תנו לבצק לנוח למשך 2-2.5 שעות הנותרות. הוא צריך לגדול ב-30-50% בנפח ולהרגיש אוורירי."
+                tips: "הבצק יהיה רך ודביק. אל תוסיפו יותר מדי קמח - רק הרטיבו את הידיים."
+            },
+            {
+                title: "מתיחה וקיפול #2",
+                content: "בצעו את סט המתיחה והקיפול השני: הרטיבו את הידיים, מתחו וקפלו מכל 4 הצדדים. הבצק כבר אמור להרגיש קצת יותר חזק ופחות דביק.",
+                timer: { duration: 30, label: "עד מתיחה וקיפול #3" },
+                temperature: "שמרו בטמפרטורה של 24-26°C.",
+                tips: "שימו לב איך הבצק מתחיל לפתח מבנה וכוח."
+            },
+            {
+                title: "מתיחה וקיפול #3",
+                content: "בצעו את סט המתיחה והקיפול השלישי: הרטיבו את הידיים, מתחו וקפלו מכל 4 הצדדים. הבצק אמור להרגיש הרבה יותר חלק ואלסטי.",
+                timer: { duration: 30, label: "עד מתיחה וקיפול #4" },
+                temperature: "שמרו בטמפרטורה של 24-26°C.",
+                tips: "הבצק אמור להתחיל להראות אוורירי עם בועות קטנות."
+            },
+            {
+                title: "מתיחה וקיפול #4 (אחרון)",
+                content: "בצעו את סט המתיחה והקיפול האחרון: הרטיבו את הידיים, מתחו וקפלו מכל 4 הצדדים. זה הסט האחרון לפני המנוחה הארוכה.",
+                timer: { duration: 30, label: "התחלת מנוחה" },
+                temperature: "שמרו בטמפרטורה של 24-26°C.",
+                tips: "אחרי הטיימר הזה, עברו לשלב הבא - מנוחת התסיסה."
+            },
+            {
+                title: "מנוחת תסיסה ראשונית",
+                content: "עכשיו תנו לבצק לנוח ללא הפרעה למשך 2-2.5 שעות. כסו את הקערה היטב. הבצק צריך לגדול ב-30-50% בנפח ולהרגיש אוורירי ומלא בועות.",
+                timer: { duration: 120, label: "מנוחת תסיסה" },
+                temperature: "שמרו בטמפרטורה של 24-26°C.",
+                tips: "אל תפריעו לבצק! זה הזמן שבו הוא מפתח טעם ומבנה. הוא צריך להיראות נפוח ומלא חיים."
             },
             {
                 title: "עיצוב ועיצוב מקדים",
@@ -340,14 +494,28 @@
                 title: "תפיחה קרה במקרר",
                 content: "הניחו את הבצק המעוצב עם הצד התפור כלפי מעלה בסל תסיסה מקומח או בקערה מרופדת במגבת. כסו היטב והכניסו למקרר ל-8-24 שעות. זה מפתח טעם והופך את החריצה לקלה יותר.",
                 timer: { duration: 480, label: "תפיחה קרה (מינימום 8 שעות)" },
-                tips: "ארוך יותר = טעם חמוץ יותר! אפשר להגיע עד 36 שעות במידת הצורך. 💡 תזכורת: לפני שתוציאו את הבצק מהמקרר, תצטרכו לחמם את התנור למשך 45-60 דקות עם סיר הולנדי בפנים."
+                tips: "ארוך יותר = טעם חמוץ יותר! אפשר להגיע עד 36 שעות במידת הצורך."
             },
             {
-                title: "חימום תנור ואפייה",
-                content: "**חלק 1 - חימום (50 דק'):** חממו את התנור ל-260°C עם סיר הולנדי בפנים. תוך כדי, הוציאו את הבצק מהמקרר והניחו על נייר אפייה. חרצו בזהירות עם להב חד.\n\n**חלק 2 - אפייה (48 דק'):** הניחו את הבצק בסיר החם, סגרו מכסה. אפו 20 דק' ב-260°C, אז הסירו מכסה, הורידו ל-230°C, והמשיכו 28 דק'.",
-                timer: { duration: 50, label: "⏰ חימום התנור - התחילו כאן!" },
-                temperature: "תנור: 260°C → 230°C",
-                tips: "השתמשו בטיימר הזה לחימום התנור. כשהוא מצלצל, הכניסו את הלחם! אחר כך השתמשו בטיימר של הטלפון שלכם ל-20 דק' עם מכסה + 28 דק' בלי מכסה."
+                title: "חימום התנור",
+                content: "חממו את התנור ל-260°C עם סיר הולנדי בפנים. תוך כדי, הוציאו את הבצק מהמקרר והניחו על נייר אפייה. חרצו בזהירות עם להב חד.",
+                timer: { duration: 50, label: "חימום התנור" },
+                temperature: "תנור: 260°C",
+                tips: "חשוב לחמם את הסיר ההולנדי יחד עם התנור כדי שיהיה חם מאוד."
+            },
+            {
+                title: "אפייה עם מכסה",
+                content: "הניחו את הבצק בסיר ההולנדי החם בזהירות (השתמשו בנייר האפייה כדי להרים אותו). סגרו את המכסה ואפו ב-260°C.",
+                timer: { duration: 20, label: "אפייה עם מכסה" },
+                temperature: "תנור: 260°C",
+                tips: "המכסה יוצר אדים שעוזרים ללחם להתפתח ולקבל קרום יפה."
+            },
+            {
+                title: "אפייה ללא מכסה",
+                content: "הסירו את המכסה בזהירות (יהיה הרבה אדים!). הורידו את הטמפרטורה ל-230°C והמשיכו לאפות עד שהלחם מקבל צבע חום זהוב.",
+                timer: { duration: 28, label: "אפייה ללא מכסה" },
+                temperature: "תנור: 230°C",
+                tips: "הלחם צריך להיות חום זהוב יפה. אל תפחדו מצבע כהה - זה מוסיף טעם!"
             },
             {
                 title: "קירור מלא",
@@ -357,16 +525,31 @@
             }
         ];
 
-        let currentStep = 0;
-        let timers = {};
-        let timerIntervals = {};
+        let recipeSteps = defaultRecipe;
+
+        // Multi-bread support
+        let breads = {};
+        let currentBreadId = null;
+        let timerUpdateInterval = null;
+
+        function getCurrentBread() {
+            if (!currentBreadId || !breads[currentBreadId]) {
+                return null;
+            }
+            return breads[currentBreadId];
+        }
 
         function updateActiveTimersIndicator() {
             const indicator = document.getElementById('activeTimersIndicator');
             if (!indicator) return;
-            
-            const activeCount = Object.values(timers).filter(t => t.running).length;
-            
+
+            let activeCount = 0;
+            Object.values(breads).forEach(bread => {
+                Object.values(bread.timers).forEach(timer => {
+                    if (timer.running) activeCount++;
+                });
+            });
+
             if (activeCount > 0) {
                 indicator.innerHTML = `<span class="timer-pulse"></span> ${activeCount} טיימר${activeCount > 1 ? 'ים' : ''} פעיל${activeCount > 1 ? 'ים' : ''}`;
                 indicator.style.display = 'flex';
@@ -375,15 +558,55 @@
             }
         }
 
+        function getTimerRemaining(timer) {
+            if (!timer.running) {
+                return timer.remaining;
+            }
+            const now = Date.now();
+            const elapsed = Math.floor((now - timer.startTime) / 1000);
+            return Math.max(0, timer.remaining - elapsed);
+        }
+
+        function renderBreadSelector() {
+            const breadList = Object.keys(breads).map(id => {
+                const bread = breads[id];
+                const isActive = id === currentBreadId;
+                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+                return `
+                    <div class="bread-item ${isActive ? 'active' : ''}" onclick="switchBread('${id}')">
+                        <div class="bread-name">${bread.name}</div>
+                        <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="bread-selector">
+                    <h3>הלחמים שלי:</h3>
+                    ${breadList}
+                    <button class="btn btn-success" onclick="createNewBread()" style="margin-top: 10px; width: 100%;">
+                        ➕ התחל לחם חדש
+                    </button>
+                </div>
+            `;
+        }
+
         function renderStep() {
+            const bread = getCurrentBread();
+            if (!bread) {
+                document.getElementById('stepContainer').innerHTML = renderBreadSelector();
+                return;
+            }
+
+            const currentStep = bread.currentStep;
             const step = recipeSteps[currentStep];
             const container = document.getElementById('stepContainer');
             const progressBar = document.getElementById('progressBar');
-            
+
             progressBar.style.width = ((currentStep + 1) / recipeSteps.length * 100) + '%';
-            
+
             updateActiveTimersIndicator();
-            
+
             if (currentStep >= recipeSteps.length) {
                 container.innerHTML = `
                     <div class="step-card completion">
@@ -391,26 +614,33 @@
                         <h2>כל הכבוד!</h2>
                         <p style="font-size: 1.2em; color: #555; margin: 20px 0;">אפיתם כיכר לחם מחמצת מדהימה!</p>
                         <p style="color: #777;">תהנו מהלחם הביתי שלכם. ככל שתתרגלו יותר, כך זה יהיה טוב יותר!</p>
-                        <button class="btn btn-success" onclick="resetApp()" style="margin-top: 30px;">
-                            🔄 התחל כיכר חדשה
+                        <button class="btn btn-success" onclick="deleteBread('${currentBreadId}')" style="margin-top: 30px;">
+                            ✅ סיימתי - מחק לחם זה
+                        </button>
+                        <button class="btn btn-back" onclick="viewAllBreads()" style="width: 100%;">
+                            ← חזור לרשימת הלחמים
                         </button>
                     </div>
                 `;
                 return;
             }
-            
+
             let html = `
+                <div class="bread-header">
+                    <strong>🍞 ${bread.name}</strong>
+                    <button class="btn-small" onclick="viewAllBreads()">← כל הלחמים</button>
+                </div>
                 <div class="step-card">
                     <div class="step-header">
                         <div class="step-number">${currentStep + 1}</div>
                         <div class="step-title">${step.title}</div>
                     </div>
-                    
+
                     <div class="step-content">
                         ${step.content}
                     </div>
             `;
-            
+
             if (step.ingredients) {
                 html += `
                     <div class="ingredients">
@@ -419,11 +649,11 @@
                     </div>
                 `;
             }
-            
+
             if (step.temperature) {
                 html += `<div class="temperature">🌡️ ${step.temperature}</div>`;
             }
-            
+
             if (step.tips) {
                 html += `
                     <div class="tips">
@@ -431,16 +661,23 @@
                     </div>
                 `;
             }
-            
+
             if (step.timer) {
                 const timerId = `timer-${currentStep}`;
-                const timerState = timers[timerId] || { remaining: step.timer.duration * 60, running: false };
-                
+                const timerState = bread.timers[timerId] || { remaining: step.timer.duration * 60, running: false, startTime: null };
+                const displayTime = getTimerRemaining(timerState);
+
                 html += `
                     <div class="timer-section">
                         <div class="timer-label">${step.timer.label}</div>
-                        <div class="timer-display" id="${timerId}-display">
-                            ${formatTime(timerState.remaining)}
+                        <div class="timer-display" id="${timerId}-display" onclick="editTimer('${timerId}')" title="לחץ לעריכה">
+                            ${formatTime(displayTime)}
+                        </div>
+                        <div class="timer-adjust">
+                            <button class="btn-adjust" onclick="adjustTimer('${timerId}', -300)">-5 דק׳</button>
+                            <button class="btn-adjust" onclick="adjustTimer('${timerId}', -60)">-1 דק׳</button>
+                            <button class="btn-adjust" onclick="adjustTimer('${timerId}', 60)">+1 דק׳</button>
+                            <button class="btn-adjust" onclick="adjustTimer('${timerId}', 300)">+5 דק׳</button>
                         </div>
                         <div class="timer-buttons">
                             <button class="btn btn-primary" onclick="toggleTimer('${timerId}', ${step.timer.duration * 60})">
@@ -453,7 +690,7 @@
                     </div>
                 `;
             }
-            
+
             html += `
                     <div class="navigation">
                         ${currentStep > 0 ? '<button class="btn btn-back" onclick="previousStep()">→ הקודם</button>' : ''}
@@ -463,22 +700,15 @@
                     </div>
                 </div>
             `;
-            
+
             container.innerHTML = html;
-            
-            // Restore running timers
-            Object.keys(timers).forEach(timerId => {
-                if (timers[timerId].running) {
-                    startTimerInterval(timerId);
-                }
-            });
         }
 
         function formatTime(seconds) {
             const hours = Math.floor(seconds / 3600);
             const minutes = Math.floor((seconds % 3600) / 60);
             const secs = seconds % 60;
-            
+
             if (hours > 0) {
                 return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
             }
@@ -486,72 +716,41 @@
         }
 
         function toggleTimer(timerId, initialDuration) {
-            if (!timers[timerId]) {
-                timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
+            const bread = getCurrentBread();
+            if (!bread) return;
+
+            if (!bread.timers[timerId]) {
+                bread.timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
             }
-            
-            const timer = timers[timerId];
-            timer.running = !timer.running;
-            
+
+            const timer = bread.timers[timerId];
+
             if (timer.running) {
-                timer.startTime = Date.now();
-            } else {
+                // Pause: calculate actual remaining time
+                const elapsed = Math.floor((Date.now() - timer.startTime) / 1000);
+                timer.remaining = Math.max(0, timer.remaining - elapsed);
+                timer.running = false;
                 timer.startTime = null;
-            }
-            
-            const btnText = document.getElementById(`${timerId}-btn-text`);
-            if (timer.running) {
-                btnText.textContent = '⏸️ השהה';
-                startTimerInterval(timerId);
             } else {
-                btnText.textContent = '▶️ התחל';
-                stopTimerInterval(timerId);
+                // Start: record start time
+                timer.running = true;
+                timer.startTime = Date.now();
             }
-            
+
+            const btnText = document.getElementById(`${timerId}-btn-text`);
+            if (btnText) {
+                btnText.textContent = timer.running ? '⏸️ השהה' : '▶️ התחל';
+            }
+
             updateActiveTimersIndicator();
             saveProgress();
         }
 
-        function startTimerInterval(timerId) {
-            if (timerIntervals[timerId]) {
-                clearInterval(timerIntervals[timerId]);
-            }
-            
-            timerIntervals[timerId] = setInterval(() => {
-                const timer = timers[timerId];
-                if (timer.remaining > 0) {
-                    timer.remaining--;
-                    const display = document.getElementById(`${timerId}-display`);
-                    if (display) {
-                        display.textContent = formatTime(timer.remaining);
-                    }
-                    saveProgress();
-                } else {
-                    stopTimerInterval(timerId);
-                    timer.running = false;
-                    timer.startTime = null;
-                    playNotification();
-                    showNotification('⏰ הטיימר הסתיים!');
-                    const btnText = document.getElementById(`${timerId}-btn-text`);
-                    if (btnText) {
-                        btnText.textContent = '▶️ התחל';
-                    }
-                    updateActiveTimersIndicator();
-                    saveProgress();
-                }
-            }, 1000);
-        }
-
-        function stopTimerInterval(timerId) {
-            if (timerIntervals[timerId]) {
-                clearInterval(timerIntervals[timerId]);
-                delete timerIntervals[timerId];
-            }
-        }
-
         function resetTimer(timerId, initialDuration) {
-            stopTimerInterval(timerId);
-            timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
+            const bread = getCurrentBread();
+            if (!bread) return;
+
+            bread.timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
             const display = document.getElementById(`${timerId}-display`);
             if (display) {
                 display.textContent = formatTime(initialDuration);
@@ -560,28 +759,143 @@
             if (btnText) {
                 btnText.textContent = '▶️ התחל';
             }
+            updateActiveTimersIndicator();
             saveProgress();
+        }
+
+        function adjustTimer(timerId, seconds) {
+            const bread = getCurrentBread();
+            if (!bread) return;
+
+            if (!bread.timers[timerId]) {
+                return;
+            }
+
+            const timer = bread.timers[timerId];
+
+            if (timer.running) {
+                // If running, adjust the remaining time by modifying startTime
+                const currentRemaining = getTimerRemaining(timer);
+                const newRemaining = Math.max(0, currentRemaining + seconds);
+                timer.remaining = newRemaining;
+                timer.startTime = Date.now();
+            } else {
+                // If paused, just adjust the remaining time
+                timer.remaining = Math.max(0, timer.remaining + seconds);
+            }
+
+            const display = document.getElementById(`${timerId}-display`);
+            if (display) {
+                display.textContent = formatTime(timer.running ? getTimerRemaining(timer) : timer.remaining);
+            }
+
+            saveProgress();
+        }
+
+        function editTimer(timerId) {
+            const bread = getCurrentBread();
+            if (!bread) return;
+
+            const timer = bread.timers[timerId];
+            if (!timer || timer.running) {
+                return; // Don't allow editing while running
+            }
+
+            const display = document.getElementById(`${timerId}-display`);
+            if (!display) return;
+
+            const currentTime = timer.remaining;
+            const hours = Math.floor(currentTime / 3600);
+            const minutes = Math.floor((currentTime % 3600) / 60);
+            const seconds = currentTime % 60;
+
+            const timeString = hours > 0
+                ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                : `${minutes}:${String(seconds).padStart(2, '0')}`;
+
+            const input = prompt('ערוך זמן (פורמט: MM:SS או HH:MM:SS):', timeString);
+
+            if (input) {
+                const parts = input.split(':').map(p => parseInt(p.trim()));
+                let newSeconds = 0;
+
+                if (parts.length === 2) {
+                    // MM:SS
+                    newSeconds = parts[0] * 60 + parts[1];
+                } else if (parts.length === 3) {
+                    // HH:MM:SS
+                    newSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+                }
+
+                if (newSeconds > 0 && !isNaN(newSeconds)) {
+                    timer.remaining = newSeconds;
+                    display.textContent = formatTime(newSeconds);
+                    saveProgress();
+                } else {
+                    alert('פורמט לא תקין. השתמש ב-MM:SS או HH:MM:SS');
+                }
+            }
+        }
+
+        function updateAllTimers() {
+            // Update all running timers across all breads
+            Object.values(breads).forEach(bread => {
+                Object.keys(bread.timers).forEach(timerId => {
+                    const timer = bread.timers[timerId];
+                    if (timer.running) {
+                        const remaining = getTimerRemaining(timer);
+                        const display = document.getElementById(`${timerId}-display`);
+                        if (display) {
+                            display.textContent = formatTime(remaining);
+                        }
+
+                        // Check if timer finished
+                        if (remaining <= 0) {
+                            timer.running = false;
+                            timer.remaining = 0;
+                            timer.startTime = null;
+
+                            const btnText = document.getElementById(`${timerId}-btn-text`);
+                            if (btnText) {
+                                btnText.textContent = '▶️ התחל';
+                            }
+
+                            playNotification();
+                            showNotification(`⏰ הטיימר הסתיים! (${bread.name})`);
+                            updateActiveTimersIndicator();
+                            saveProgress();
+                        }
+                    }
+                });
+            });
+        }
+
+        function startGlobalTimerUpdate() {
+            if (timerUpdateInterval) {
+                clearInterval(timerUpdateInterval);
+            }
+            timerUpdateInterval = setInterval(updateAllTimers, 1000);
         }
 
         function playNotification() {
             // Create multiple beep sounds for better attention
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
+
             // Beep 3 times
             for (let i = 0; i < 3; i++) {
                 setTimeout(() => {
                     const oscillator = audioContext.createOscillator();
                     const gainNode = audioContext.createGain();
-                    
+
                     oscillator.connect(gainNode);
                     gainNode.connect(audioContext.destination);
-                    
+
                     oscillator.frequency.value = 800;
                     oscillator.type = 'sine';
-                    
+
                     gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    
+
                     oscillator.start(audioContext.currentTime);
                     oscillator.stop(audioContext.currentTime + 0.3);
                 }, i * 400);
@@ -603,75 +917,115 @@
             }
         }
 
+        function createNewBread() {
+            const breadId = 'bread-' + Date.now();
+            const breadNumber = Object.keys(breads).length + 1;
+            breads[breadId] = {
+                id: breadId,
+                name: `לחם #${breadNumber}`,
+                currentStep: 0,
+                timers: {},
+                createdAt: Date.now()
+            };
+            currentBreadId = breadId;
+            saveProgress();
+            renderStep();
+        }
+
+        function switchBread(breadId) {
+            currentBreadId = breadId;
+            saveProgress();
+            renderStep();
+        }
+
+        function viewAllBreads() {
+            currentBreadId = null;
+            saveProgress();
+            renderStep();
+        }
+
+        function deleteBread(breadId) {
+            delete breads[breadId];
+            currentBreadId = null;
+            saveProgress();
+            renderStep();
+        }
+
         function nextStep() {
-            currentStep++;
+            const bread = getCurrentBread();
+            if (!bread) return;
+            bread.currentStep++;
             saveProgress();
             window.scrollTo(0, 0);
             renderStep();
         }
 
         function previousStep() {
-            if (currentStep > 0) {
-                currentStep--;
+            const bread = getCurrentBread();
+            if (!bread) return;
+            if (bread.currentStep > 0) {
+                bread.currentStep--;
                 saveProgress();
                 window.scrollTo(0, 0);
                 renderStep();
             }
         }
 
-        function resetApp() {
-            currentStep = 0;
-            timers = {};
-            Object.keys(timerIntervals).forEach(stopTimerInterval);
-            saveProgress();
-            renderStep();
-        }
-
         function saveProgress() {
-            const timerData = {};
-            Object.keys(timers).forEach(timerId => {
-                const timer = timers[timerId];
-                timerData[timerId] = {
-                    remaining: timer.remaining,
-                    running: timer.running,
-                    startTime: timer.startTime || null
-                };
-            });
-            
             localStorage.setItem('sourdoughProgress', JSON.stringify({
-                currentStep,
-                timers: timerData
+                breads,
+                currentBreadId
             }));
         }
 
         function loadProgress() {
             const saved = localStorage.getItem('sourdoughProgress');
             if (saved) {
-                const data = JSON.parse(saved);
-                currentStep = data.currentStep || 0;
-                
-                // Restore timers and calculate elapsed time for running timers
-                if (data.timers) {
-                    const now = Date.now();
-                    Object.keys(data.timers).forEach(timerId => {
-                        const savedTimer = data.timers[timerId];
-                        if (savedTimer.running && savedTimer.startTime) {
-                            // Calculate how much time has passed
-                            const elapsed = Math.floor((now - savedTimer.startTime) / 1000);
-                            const remaining = Math.max(0, savedTimer.remaining - elapsed);
-                            timers[timerId] = {
-                                remaining: remaining,
-                                running: remaining > 0,
-                                startTime: now
-                            };
-                        } else {
-                            timers[timerId] = {
-                                remaining: savedTimer.remaining,
-                                running: false,
-                                startTime: null
-                            };
-                        }
-                    });
+                try {
+                    const data = JSON.parse(saved);
+
+                    // Load breads
+                    if (data.breads) {
+                        breads = data.breads;
+                        currentBreadId = data.currentBreadId || null;
+                    } else if (data.currentStep !== undefined) {
+                        // Migrate old single-bread format
+                        const breadId = 'bread-' + Date.now();
+                        breads[breadId] = {
+                            id: breadId,
+                            name: 'לחם #1',
+                            currentStep: data.currentStep || 0,
+                            timers: data.timers || {},
+                            createdAt: Date.now()
+                        };
+                        currentBreadId = breadId;
+                    }
+                } catch (e) {
+                    console.error('Failed to load progress:', e);
+                }
+            }
+
+            // Create first bread if none exist
+            if (Object.keys(breads).length === 0) {
+                createNewBread();
+            }
+        }
+
+        async function loadRecipeFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const recipeUrl = params.get('recipe');
+
+            if (recipeUrl) {
+                try {
+                    const response = await fetch(recipeUrl);
+                    const recipe = await response.json();
+                    if (Array.isArray(recipe) && recipe.length > 0) {
+                        recipeSteps = recipe;
+                        console.log('Loaded custom recipe from:', recipeUrl);
+                    }
+                } catch (e) {
+                    console.error('Failed to load recipe from URL:', e);
+                    alert('שגיאה בטעינת המתכון מה-URL. משתמש במתכון ברירת המחדל.');
                 }
             }
         }
@@ -682,8 +1036,14 @@
         }
 
         // Initialize app
-        loadProgress();
-        renderStep();
+        async function initApp() {
+            await loadRecipeFromURL();
+            loadProgress();
+            startGlobalTimerUpdate();
+            renderStep();
+        }
+
+        initApp();
     </script>
 </body>
 </html>
