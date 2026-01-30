@@ -935,6 +935,38 @@
                 return;
             }
 
+            // Build list of all active timers for this bread
+            let allActiveTimersHtml = '';
+            const activeTimersList = [];
+            Object.entries(bread.timers).forEach(([timerId, timer]) => {
+                if (timer.running) {
+                    const stepMatch = timerId.match(/timer-(\d+)/);
+                    const stepIndex = stepMatch ? parseInt(stepMatch[1]) : 0;
+                    const stepLabel = recipeSteps[stepIndex]?.timer?.label || recipeSteps[stepIndex]?.title || 'טיימר';
+                    const remaining = getTimerRemaining(timer);
+                    activeTimersList.push({
+                        timerId,
+                        stepIndex,
+                        stepLabel,
+                        remaining
+                    });
+                }
+            });
+
+            if (activeTimersList.length > 0) {
+                allActiveTimersHtml = `
+                    <div class="all-active-timers">
+                        <h4>⏱️ טיימרים פעילים ללחם זה:</h4>
+                        ${activeTimersList.map(t => `
+                            <div class="active-timer-item">
+                                <span>שלב ${t.stepIndex + 1}: ${t.stepLabel}</span>
+                                <span class="active-timer-time" id="active-${bread.id}-${t.timerId}">${formatTime(t.remaining)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
             let html = stickySelector + `
                 <div class="bread-header">
                     <strong>🍞 ${bread.name}</strong>
@@ -943,6 +975,7 @@
                         <button class="btn-small" onclick="viewAllBreads()">← כל הלחמים</button>
                     </div>
                 </div>
+                ${allActiveTimersHtml}
                 <div class="step-card">
                     <div class="step-header">
                         <div class="step-number">${currentStep + 1}</div>
@@ -979,11 +1012,12 @@
                 const timerId = `timer-${currentStep}`;
                 const timerState = bread.timers[timerId] || { remaining: step.timer.duration * 60, running: false, startTime: null };
                 const displayTime = getTimerRemaining(timerState);
+                const domTimerId = `${bread.id}-${timerId}`; // Unique DOM ID per bread
 
                 html += `
                     <div class="timer-section">
                         <div class="timer-label">${step.timer.label}</div>
-                        <div class="timer-display" id="${timerId}-display" onclick="editTimer('${timerId}')" title="לחץ לעריכה">
+                        <div class="timer-display" id="${domTimerId}-display" onclick="editTimer('${timerId}')" title="לחץ לעריכה">
                             ${formatTime(displayTime)}
                         </div>
                         <div class="timer-adjust">
@@ -994,7 +1028,7 @@
                         </div>
                         <div class="timer-buttons">
                             <button class="btn btn-primary" onclick="toggleTimer('${timerId}', ${step.timer.duration * 60})">
-                                <span id="${timerId}-btn-text">${timerState.running ? '⏸️ השהה' : '▶️ התחל'}</span>
+                                <span id="${domTimerId}-btn-text">${timerState.running ? '⏸️ השהה' : '▶️ התחל'}</span>
                             </button>
                             <button class="btn btn-primary" onclick="resetTimer('${timerId}', ${step.timer.duration * 60})">
                                 🔄 אפס
@@ -1045,12 +1079,23 @@
                 timer.running = false;
                 timer.startTime = null;
             } else {
+                // Check if another timer is already running for this bread
+                const hasRunningTimer = Object.entries(bread.timers).some(([id, t]) => {
+                    return id !== timerId && t.running;
+                });
+
+                if (hasRunningTimer) {
+                    alert('כבר יש טיימר פעיל ללחם זה. עצור או המתן לסיום הטיימר הקיים לפני הפעלת טיימר חדש.');
+                    return;
+                }
+
                 // Start: record start time
                 timer.running = true;
                 timer.startTime = Date.now();
             }
 
-            const btnText = document.getElementById(`${timerId}-btn-text`);
+            const domTimerId = `${bread.id}-${timerId}`;
+            const btnText = document.getElementById(`${domTimerId}-btn-text`);
             if (btnText) {
                 btnText.textContent = timer.running ? '⏸️ השהה' : '▶️ התחל';
             }
@@ -1064,11 +1109,12 @@
             if (!bread) return;
 
             bread.timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
-            const display = document.getElementById(`${timerId}-display`);
+            const domTimerId = `${bread.id}-${timerId}`;
+            const display = document.getElementById(`${domTimerId}-display`);
             if (display) {
                 display.textContent = formatTime(initialDuration);
             }
-            const btnText = document.getElementById(`${timerId}-btn-text`);
+            const btnText = document.getElementById(`${domTimerId}-btn-text`);
             if (btnText) {
                 btnText.textContent = '▶️ התחל';
             }
@@ -1113,7 +1159,8 @@
                 timer.remaining = Math.max(0, timer.remaining + seconds);
             }
 
-            const display = document.getElementById(`${timerId}-display`);
+            const domTimerId = `${bread.id}-${timerId}`;
+            const display = document.getElementById(`${domTimerId}-display`);
             if (display) {
                 display.textContent = formatTime(timer.running ? getTimerRemaining(timer) : timer.remaining);
             }
@@ -1138,7 +1185,8 @@
                 return; // Don't allow editing while running
             }
 
-            const display = document.getElementById(`${timerId}-display`);
+            const domTimerId = `${bread.id}-${timerId}`;
+            const display = document.getElementById(`${domTimerId}-display`);
             if (!display) return;
 
             const currentTime = timer.remaining;
@@ -1182,7 +1230,8 @@
                     const timer = bread.timers[timerId];
                     if (timer.running) {
                         const remaining = getTimerRemaining(timer);
-                        const display = document.getElementById(`${timerId}-display`);
+                        const domTimerId = `${bread.id}-${timerId}`;
+                        const display = document.getElementById(`${domTimerId}-display`);
                         if (display) {
                             display.textContent = formatTime(remaining);
                         }
@@ -1193,7 +1242,7 @@
                             timer.remaining = 0;
                             timer.startTime = null;
 
-                            const btnText = document.getElementById(`${timerId}-btn-text`);
+                            const btnText = document.getElementById(`${domTimerId}-btn-text`);
                             if (btnText) {
                                 btnText.textContent = '▶️ התחל';
                             }
@@ -1320,6 +1369,24 @@
 
         function switchBread(breadId) {
             currentBreadId = breadId;
+
+            // Check if this bread has a running timer and jump to that step
+            const bread = breads[breadId];
+            if (bread) {
+                // Find the step with a running timer
+                for (const [timerId, timer] of Object.entries(bread.timers)) {
+                    if (timer.running) {
+                        // Extract step index from timerId (format: "timer-3")
+                        const stepMatch = timerId.match(/timer-(\d+)/);
+                        if (stepMatch) {
+                            const stepIndex = parseInt(stepMatch[1]);
+                            bread.currentStep = stepIndex;
+                            break; // Only one timer can be running, so we can break
+                        }
+                    }
+                }
+            }
+
             saveProgress();
             renderStep();
         }
