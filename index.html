@@ -387,6 +387,36 @@
         .btn-small:active {
             transform: scale(0.95);
         }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .btn-delete:active {
+            transform: scale(0.95);
+        }
+
+        .bread-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bread-item-info {
+            flex: 1;
+        }
         
         @media (max-width: 480px) {
             .container {
@@ -573,9 +603,14 @@
                 const isActive = id === currentBreadId;
                 const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
                 return `
-                    <div class="bread-item ${isActive ? 'active' : ''}" onclick="switchBread('${id}')">
-                        <div class="bread-name">${bread.name}</div>
-                        <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
+                    <div class="bread-item ${isActive ? 'active' : ''}">
+                        <div class="bread-item-header">
+                            <div class="bread-item-info" onclick="switchBread('${id}')">
+                                <div class="bread-name">${bread.name}</div>
+                                <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
+                            </div>
+                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️ מחק</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -614,7 +649,7 @@
                         <h2>כל הכבוד!</h2>
                         <p style="font-size: 1.2em; color: #555; margin: 20px 0;">אפיתם כיכר לחם מחמצת מדהימה!</p>
                         <p style="color: #777;">תהנו מהלחם הביתי שלכם. ככל שתתרגלו יותר, כך זה יהיה טוב יותר!</p>
-                        <button class="btn btn-success" onclick="deleteBread('${currentBreadId}')" style="margin-top: 30px;">
+                        <button class="btn btn-success" onclick="confirmDeleteBread('${currentBreadId}')" style="margin-top: 30px;">
                             ✅ סיימתי - מחק לחם זה
                         </button>
                         <button class="btn btn-back" onclick="viewAllBreads()" style="width: 100%;">
@@ -628,7 +663,10 @@
             let html = `
                 <div class="bread-header">
                     <strong>🍞 ${bread.name}</strong>
-                    <button class="btn-small" onclick="viewAllBreads()">← כל הלחמים</button>
+                    <div>
+                        <button class="btn-delete" onclick="confirmDeleteBread('${currentBreadId}')" style="margin-left: 10px;">🗑️ מחק לחם</button>
+                        <button class="btn-small" onclick="viewAllBreads()">← כל הלחמים</button>
+                    </div>
                 </div>
                 <div class="step-card">
                     <div class="step-header">
@@ -763,15 +801,31 @@
             saveProgress();
         }
 
+        function ensureTimerExists(timerId, initialDuration) {
+            const bread = getCurrentBread();
+            if (!bread) return null;
+
+            if (!bread.timers[timerId]) {
+                bread.timers[timerId] = {
+                    remaining: initialDuration,
+                    running: false,
+                    startTime: null
+                };
+            }
+            return bread.timers[timerId];
+        }
+
         function adjustTimer(timerId, seconds) {
             const bread = getCurrentBread();
             if (!bread) return;
 
-            if (!bread.timers[timerId]) {
-                return;
-            }
+            // Get initial duration from the timer display's data attribute or calculate from current step
+            const currentStep = bread.currentStep;
+            const step = recipeSteps[currentStep];
+            const initialDuration = step.timer ? step.timer.duration * 60 : 0;
 
-            const timer = bread.timers[timerId];
+            const timer = ensureTimerExists(timerId, initialDuration);
+            if (!timer) return;
 
             if (timer.running) {
                 // If running, adjust the remaining time by modifying startTime
@@ -796,8 +850,16 @@
             const bread = getCurrentBread();
             if (!bread) return;
 
-            const timer = bread.timers[timerId];
-            if (!timer || timer.running) {
+            // Get initial duration from current step
+            const currentStep = bread.currentStep;
+            const step = recipeSteps[currentStep];
+            const initialDuration = step.timer ? step.timer.duration * 60 : 0;
+
+            const timer = ensureTimerExists(timerId, initialDuration);
+            if (!timer) return;
+
+            if (timer.running) {
+                alert('עצור את הטיימר לפני עריכה');
                 return; // Don't allow editing while running
             }
 
@@ -944,11 +1006,33 @@
             renderStep();
         }
 
+        function confirmDeleteBread(breadId) {
+            const bread = breads[breadId];
+            if (!bread) return;
+
+            const breadName = bread.name;
+            const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+
+            if (confirm(`האם אתה בטוח שברצונך למחוק את "${breadName}"?\n\nהתקדמות: ${progress}% (שלב ${bread.currentStep + 1}/${recipeSteps.length})\n\nפעולה זו לא ניתנת לביטול!`)) {
+                deleteBread(breadId);
+            }
+        }
+
         function deleteBread(breadId) {
             delete breads[breadId];
-            currentBreadId = null;
-            saveProgress();
-            renderStep();
+
+            // If we deleted the current bread, go back to bread selector
+            if (currentBreadId === breadId) {
+                currentBreadId = null;
+            }
+
+            // If no breads left, create a new one
+            if (Object.keys(breads).length === 0) {
+                createNewBread();
+            } else {
+                saveProgress();
+                renderStep();
+            }
         }
 
         function nextStep() {
