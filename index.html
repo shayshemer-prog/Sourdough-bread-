@@ -47,7 +47,7 @@
             align-items: center;
             gap: 5px;
         }
-        
+
         .timer-pulse {
             width: 8px;
             height: 8px;
@@ -55,10 +55,95 @@
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        .global-timers-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .global-timers-section.has-timers {
+            display: block;
+        }
+
+        .global-timers-title {
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            opacity: 0.95;
+        }
+
+        .global-timer-item {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+        }
+
+        .global-timer-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .global-timer-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .global-timer-time {
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+            font-size: 1.1em;
+        }
+
+        .sticky-bread-selector {
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            margin: -20px -20px 20px -20px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #f5e6d3 0%, #d4a574 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-radius: 0 0 12px 12px;
+        }
+
+        .sticky-bread-selector .bread-selector {
+            margin-bottom: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+        }
+
+        .sticky-bread-selector .bread-selector h3 {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+
+        .sticky-bread-selector .bread-item {
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .sticky-bread-selector .bread-name {
+            font-size: 0.95em;
+        }
+
+        .sticky-bread-selector .bread-progress {
+            font-size: 0.8em;
+        }
+
+        .sticky-bread-selector .recipe-loader {
+            display: none;
         }
         
         .progress-bar {
@@ -356,6 +441,14 @@
             font-size: 0.9em;
         }
 
+        .bread-timer-info {
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+
         .bread-header {
             background: white;
             border-radius: 12px;
@@ -498,8 +591,12 @@
         <div class="progress-bar">
             <div class="progress-fill" id="progressBar"></div>
         </div>
+        <div class="global-timers-section" id="globalTimersSection">
+            <div class="global-timers-title">⏱️ טיימרים פעילים:</div>
+            <div id="globalTimersList"></div>
+        </div>
     </div>
-    
+
     <div class="container">
         <div id="stepContainer"></div>
     </div>
@@ -622,21 +719,79 @@
 
         function updateActiveTimersIndicator() {
             const indicator = document.getElementById('activeTimersIndicator');
-            if (!indicator) return;
+            const globalTimersSection = document.getElementById('globalTimersSection');
+            const globalTimersList = document.getElementById('globalTimersList');
+
+            if (!indicator || !globalTimersSection || !globalTimersList) return;
 
             let activeCount = 0;
+            const timerData = [];
+
             Object.values(breads).forEach(bread => {
-                Object.values(bread.timers).forEach(timer => {
-                    if (timer.running) activeCount++;
+                Object.entries(bread.timers).forEach(([timerId, timer]) => {
+                    if (timer.running) {
+                        activeCount++;
+                        const stepMatch = timerId.match(/timer-(\d+)/);
+                        const stepIndex = stepMatch ? parseInt(stepMatch[1]) : 0;
+                        const stepLabel = recipeSteps[stepIndex]?.timer?.label || 'טיימר';
+
+                        timerData.push({
+                            breadName: bread.name,
+                            stepLabel: stepLabel,
+                            timerId: timerId,
+                            breadId: bread.id
+                        });
+                    }
                 });
             });
 
             if (activeCount > 0) {
                 indicator.innerHTML = `<span class="timer-pulse"></span> ${activeCount} טיימר${activeCount > 1 ? 'ים' : ''} פעיל${activeCount > 1 ? 'ים' : ''}`;
                 indicator.style.display = 'flex';
+
+                // Build HTML with data attributes for real-time updates
+                let timersHTML = '';
+                timerData.forEach(data => {
+                    const timer = breads[data.breadId].timers[data.timerId];
+                    const remaining = getTimerRemaining(timer);
+                    timersHTML += `
+                        <div class="global-timer-item" data-bread-id="${data.breadId}" data-timer-id="${data.timerId}">
+                            <div class="global-timer-label">
+                                <span class="timer-pulse"></span>
+                                <span>${data.breadName} - ${data.stepLabel}</span>
+                            </div>
+                            <div class="global-timer-time">${formatTime(remaining)}</div>
+                        </div>
+                    `;
+                });
+
+                globalTimersList.innerHTML = timersHTML;
+                globalTimersSection.classList.add('has-timers');
             } else {
                 indicator.style.display = 'none';
+                globalTimersSection.classList.remove('has-timers');
             }
+        }
+
+        function updateGlobalTimersDisplay() {
+            // Update the time displays in real-time without rebuilding the entire HTML
+            const globalTimerItems = document.querySelectorAll('.global-timer-item');
+
+            globalTimerItems.forEach(item => {
+                const breadId = item.getAttribute('data-bread-id');
+                const timerId = item.getAttribute('data-timer-id');
+
+                if (breadId && timerId && breads[breadId] && breads[breadId].timers[timerId]) {
+                    const timer = breads[breadId].timers[timerId];
+                    if (timer.running) {
+                        const remaining = getTimerRemaining(timer);
+                        const timeDisplay = item.querySelector('.global-timer-time');
+                        if (timeDisplay) {
+                            timeDisplay.textContent = formatTime(remaining);
+                        }
+                    }
+                }
+            });
         }
 
         function getTimerRemaining(timer) {
@@ -646,6 +801,51 @@
             const now = Date.now();
             const elapsed = Math.floor((now - timer.startTime) / 1000);
             return Math.max(0, timer.remaining - elapsed);
+        }
+
+        function renderCompactBreadSelector() {
+            const breadList = Object.keys(breads).map(id => {
+                const bread = breads[id];
+                const isActive = id === currentBreadId;
+                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+
+                // Get active timers for this bread
+                let timerInfo = '';
+                const activeTimers = [];
+                Object.entries(bread.timers).forEach(([timerId, timer]) => {
+                    if (timer.running) {
+                        const remaining = getTimerRemaining(timer);
+                        activeTimers.push(formatTime(remaining));
+                    }
+                });
+
+                if (activeTimers.length > 0) {
+                    timerInfo = `<div class="bread-timer-info">⏱️ ${activeTimers.join(', ')}</div>`;
+                }
+
+                return `
+                    <div class="bread-item ${isActive ? 'active' : ''}" data-bread-id="${id}">
+                        <div class="bread-item-header">
+                            <div class="bread-item-info" onclick="switchBread('${id}')">
+                                <div class="bread-name">${bread.name}</div>
+                                <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
+                                ${timerInfo}
+                            </div>
+                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️ מחק</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="bread-selector">
+                    <h3>הלחמים שלי:</h3>
+                    ${breadList}
+                    <button class="btn btn-success" onclick="createNewBread()" style="margin-top: 10px; width: 100%;">
+                        ➕ התחל לחם חדש
+                    </button>
+                </div>
+            `;
         }
 
         function renderBreadSelector() {
@@ -710,8 +910,15 @@
 
             updateActiveTimersIndicator();
 
+            // Render sticky bread selector first
+            const stickySelector = `
+                <div class="sticky-bread-selector">
+                    ${renderCompactBreadSelector()}
+                </div>
+            `;
+
             if (currentStep >= recipeSteps.length) {
-                container.innerHTML = `
+                container.innerHTML = stickySelector + `
                     <div class="step-card completion">
                         <div class="completion-icon">🎉</div>
                         <h2>כל הכבוד!</h2>
@@ -728,7 +935,7 @@
                 return;
             }
 
-            let html = `
+            let html = stickySelector + `
                 <div class="bread-header">
                     <strong>🍞 ${bread.name}</strong>
                     <div>
@@ -969,6 +1176,7 @@
 
         function updateAllTimers() {
             // Update all running timers across all breads
+            let needsUpdate = false;
             Object.values(breads).forEach(bread => {
                 Object.keys(bread.timers).forEach(timerId => {
                     const timer = bread.timers[timerId];
@@ -994,9 +1202,57 @@
                             showNotification(`⏰ הטיימר הסתיים! (${bread.name})`);
                             updateActiveTimersIndicator();
                             saveProgress();
+                            needsUpdate = true;
                         }
                     }
                 });
+            });
+
+            // Always update all timer displays in real-time
+            updateGlobalTimersDisplay();
+            updateStickyBreadSelectorTimers();
+        }
+
+        function updateStickyBreadSelectorTimers() {
+            // Update timer info in sticky bread selector in real-time
+            Object.keys(breads).forEach(id => {
+                const bread = breads[id];
+                const breadItem = document.querySelector(`.sticky-bread-selector .bread-item[data-bread-id="${id}"]`);
+
+                if (breadItem) {
+                    let timerInfoElement = breadItem.querySelector('.bread-timer-info');
+
+                    const activeTimers = [];
+                    Object.entries(bread.timers).forEach(([timerId, timer]) => {
+                        if (timer.running) {
+                            const remaining = getTimerRemaining(timer);
+                            activeTimers.push(formatTime(remaining));
+                        }
+                    });
+
+                    if (activeTimers.length > 0) {
+                        const timerText = `⏱️ ${activeTimers.join(', ')}`;
+                        if (timerInfoElement) {
+                            // Update existing element
+                            timerInfoElement.textContent = timerText;
+                            timerInfoElement.style.display = 'block';
+                        } else {
+                            // Create new element if it doesn't exist
+                            const breadItemInfo = breadItem.querySelector('.bread-item-info');
+                            if (breadItemInfo) {
+                                timerInfoElement = document.createElement('div');
+                                timerInfoElement.className = 'bread-timer-info';
+                                timerInfoElement.textContent = timerText;
+                                breadItemInfo.appendChild(timerInfoElement);
+                            }
+                        }
+                    } else {
+                        // Hide timer info if no active timers
+                        if (timerInfoElement) {
+                            timerInfoElement.style.display = 'none';
+                        }
+                    }
+                }
             });
         }
 
