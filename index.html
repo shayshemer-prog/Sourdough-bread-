@@ -634,10 +634,16 @@
             </div>
             <div id="recipeLoaderSection" style="display: none; margin-bottom: 10px;">
                 <div style="background: rgba(255, 193, 7, 0.2); border-radius: 6px; padding: 10px;">
-                    <input type="text" id="recipeUrlInput" placeholder="https://example.com/my-recipe.json" style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 8px; direction: ltr; text-align: left; font-size: 0.85em;" />
-                    <button onclick="loadCustomRecipe()" style="width: 100%; background: #ffc107; color: #856404; border: none; padding: 8px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.85em;">טען מתכון</button>
+                    <div style="margin-bottom: 8px; font-size: 0.85em; color: rgba(255,255,255,0.95); font-weight: 600;">
+                        הדבק מתכון מכל אתר:
+                    </div>
+                    <textarea id="recipeTextInput" placeholder="הדבק כאן את המתכון המלא (כולל מרכיבים, שלבים, זמנים...)&#10;&#10;לדוגמה:&#10;מרכיבים:&#10;- 500 גרם קמח&#10;- 350 מ&quot;ל מים&#10;&#10;שלבים:&#10;1. ערבב קמח ומים&#10;2. תן לנוח 30 דקות&#10;..." style="width: 100%; min-height: 150px; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 8px; font-size: 0.85em; font-family: inherit; resize: vertical;"></textarea>
+                    <div style="display: flex; gap: 6px;">
+                        <button onclick="parseRecipeText()" style="flex: 1; background: #ffc107; color: #856404; border: none; padding: 8px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.85em;">📖 פרק את המתכון</button>
+                        <button onclick="resetToDefaultRecipe()" style="flex: 1; background: #dc3545; color: white; border: none; padding: 8px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.85em;">🔄 מתכון מקורי</button>
+                    </div>
                     <div style="margin-top: 6px; font-size: 0.75em; color: rgba(255,255,255,0.9); text-align: center;">
-                        או הוסף ?recipe=URL לכתובת הדף
+                        האפליקציה תנתח את המתכון ותחלק אותו לשלבים
                     </div>
                 </div>
             </div>
@@ -766,6 +772,93 @@
             return breads[currentBreadId];
         }
 
+        function calculateTotalRecipeTime() {
+            // Calculate total time of all timers in the recipe
+            let totalMinutes = 0;
+            recipeSteps.forEach(step => {
+                if (step.timer && step.timer.duration) {
+                    totalMinutes += step.timer.duration;
+                }
+            });
+            return totalMinutes;
+        }
+
+        function calculateTimeBasedProgress(bread) {
+            const totalRecipeTime = calculateTotalRecipeTime();
+            if (totalRecipeTime === 0) {
+                // Fallback to step-based if no timers
+                return Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+            }
+
+            // Calculate time already completed (all steps before current)
+            let completedTime = 0;
+            for (let i = 0; i < bread.currentStep; i++) {
+                const step = recipeSteps[i];
+                if (step.timer && step.timer.duration) {
+                    completedTime += step.timer.duration;
+                }
+            }
+
+            // Add time from current step's timer if it exists
+            const currentStep = recipeSteps[bread.currentStep];
+            if (currentStep && currentStep.timer && currentStep.timer.duration) {
+                const timerId = `timer-${bread.currentStep}`;
+                const timer = bread.timers[timerId];
+
+                if (timer) {
+                    const remaining = getTimerRemaining(timer);
+                    const elapsed = currentStep.timer.duration * 60 - remaining; // Convert to seconds
+                    completedTime += elapsed / 60; // Convert back to minutes
+                }
+            }
+
+            const progress = Math.round((completedTime / totalRecipeTime) * 100);
+            return Math.min(100, Math.max(0, progress)); // Clamp between 0-100
+        }
+
+        function calculateRemainingTime(bread) {
+            const totalRecipeTime = calculateTotalRecipeTime();
+            if (totalRecipeTime === 0) {
+                return 0;
+            }
+
+            // Calculate time already completed (all steps before current)
+            let completedTime = 0;
+            for (let i = 0; i < bread.currentStep; i++) {
+                const step = recipeSteps[i];
+                if (step.timer && step.timer.duration) {
+                    completedTime += step.timer.duration;
+                }
+            }
+
+            // Add time from current step's timer if it exists
+            const currentStep = recipeSteps[bread.currentStep];
+            if (currentStep && currentStep.timer && currentStep.timer.duration) {
+                const timerId = `timer-${bread.currentStep}`;
+                const timer = bread.timers[timerId];
+
+                if (timer) {
+                    const remaining = getTimerRemaining(timer);
+                    const elapsed = currentStep.timer.duration * 60 - remaining; // Convert to seconds
+                    completedTime += elapsed / 60; // Convert back to minutes
+                }
+            }
+
+            return Math.round(totalRecipeTime - completedTime);
+        }
+
+        function formatMinutesToTime(minutes) {
+            if (minutes < 60) {
+                return `${minutes} דק'`;
+            }
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            if (mins === 0) {
+                return `${hours} שע'`;
+            }
+            return `${hours} שע' ${mins} דק'`;
+        }
+
         function updateActiveTimersIndicator() {
             const indicator = document.getElementById('activeTimersIndicator');
             const globalTimersList = document.getElementById('globalTimersList');
@@ -795,8 +888,10 @@
             let breadsHTML = '';
             Object.values(breads).forEach(bread => {
                 const isActive = bread.id === currentBreadId;
-                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+                const progress = calculateTimeBasedProgress(bread);
                 const stepName = recipeSteps[bread.currentStep]?.title || '';
+                const totalRecipeTime = calculateTotalRecipeTime();
+                const remainingTime = calculateRemainingTime(bread);
 
                 // Get active timer info
                 let timerInfo = '';
@@ -807,6 +902,12 @@
                     }
                 });
 
+                // Build time info string
+                let timeInfo = '';
+                if (totalRecipeTime > 0) {
+                    timeInfo = ` • ${formatMinutesToTime(remainingTime)} נותרו`;
+                }
+
                 breadsHTML += `
                     <div class="global-timer-item ${isActive ? 'active' : ''}" data-bread-id="${bread.id}" onclick="switchBread('${bread.id}')">
                         <div style="flex: 1;">
@@ -814,7 +915,7 @@
                                 <span style="font-weight: 600;">${bread.name}</span>
                             </div>
                             <div style="font-size: 0.85em; color: rgba(255,255,255,0.8); margin-top: 2px;">
-                                ${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}: ${stepName}
+                                ${stepName} • שלב ${bread.currentStep + 1}/${recipeSteps.length} • ${progress}%${timeInfo}
                             </div>
                         </div>
                         ${timerInfo}
@@ -884,7 +985,7 @@
             const container = document.getElementById('stepContainer');
             const progressBar = document.getElementById('progressBar');
 
-            progressBar.style.width = ((currentStep + 1) / recipeSteps.length * 100) + '%';
+            progressBar.style.width = calculateTimeBasedProgress(bread) + '%';
 
             updateActiveTimersIndicator();
 
@@ -1369,7 +1470,7 @@
             if (!bread) return;
 
             const breadName = bread.name;
-            const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
+            const progress = calculateTimeBasedProgress(bread);
 
             if (confirm(`האם אתה בטוח שברצונך למחוק את "${breadName}"?\n\nהתקדמות: ${progress}% (שלב ${bread.currentStep + 1}/${recipeSteps.length})\n\nפעולה זו לא ניתנת לביטול!`)) {
                 deleteBread(breadId);
@@ -1508,6 +1609,234 @@
             if (section) {
                 section.style.display = section.style.display === 'none' ? 'block' : 'none';
             }
+        }
+
+        function resetToDefaultRecipe() {
+            if (confirm('האם אתה בטוח שברצונך לחזור למתכון המקורי של לחם מחמצת?\n\nכל הלחמים הקיימים יאופסו.')) {
+                recipeSteps = defaultRecipe;
+                breads = {};
+                currentBreadId = null;
+                breadCounter = 0;
+
+                // Hide the recipe loader
+                const section = document.getElementById('recipeLoaderSection');
+                if (section) {
+                    section.style.display = 'none';
+                }
+
+                saveProgress();
+                renderStep();
+                updateActiveTimersIndicator();
+
+                alert('✅ חזרנו למתכון המקורי!');
+            }
+        }
+
+        function parseRecipeText() {
+            const textarea = document.getElementById('recipeTextInput');
+            const text = textarea ? textarea.value.trim() : '';
+
+            if (!text) {
+                alert('אנא הדבק טקסט מתכון');
+                return;
+            }
+
+            try {
+                // Parse the recipe text into steps
+                const parsedRecipe = parseRecipeFromText(text);
+
+                if (!parsedRecipe || parsedRecipe.length === 0) {
+                    alert('לא הצלחתי לפרק את המתכון. נסה לוודא שהמתכון כולל שלבים ממוספרים או רשימה ברורה.');
+                    return;
+                }
+
+                // Set the parsed recipe as the current recipe
+                recipeSteps = parsedRecipe;
+
+                // Reset all breads to use the new recipe
+                const confirmReset = confirm(`המתכון פורק בהצלחה ל-${parsedRecipe.length} שלבים!\n\nהאם לאפס את כל הלחמים הקיימים ולהתחיל מחדש עם המתכון החדש?`);
+
+                if (confirmReset) {
+                    breads = {};
+                    currentBreadId = null;
+                    breadCounter = 0;
+                    createNewBread();
+                }
+
+                // Hide the recipe loader
+                const section = document.getElementById('recipeLoaderSection');
+                if (section) {
+                    section.style.display = 'none';
+                }
+
+                // Clear the textarea
+                textarea.value = '';
+
+                saveProgress();
+                renderStep();
+
+                alert(`✅ המתכון נטען בהצלחה!\n\nמספר שלבים: ${parsedRecipe.length}`);
+
+            } catch (e) {
+                console.error('Failed to parse recipe:', e);
+                alert(`❌ שגיאה בפירוק המתכון:\n\n${e.message}`);
+            }
+        }
+
+        function parseRecipeFromText(text) {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const steps = [];
+            let currentStep = null;
+            let ingredients = [];
+            let inIngredientsSection = false;
+            let inStepsSection = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Check if this is an ingredients section header
+                if (line.match(/^(מרכיבים|רכיבים|ingredients)[:：]?$/i)) {
+                    inIngredientsSection = true;
+                    inStepsSection = false;
+                    continue;
+                }
+
+                // Check if this is a steps section header
+                if (line.match(/^(שלבים|הוראות|הכנה|אופן ההכנה|steps|instructions|directions|method)[:：]?$/i)) {
+                    inIngredientsSection = false;
+                    inStepsSection = true;
+                    continue;
+                }
+
+                // Parse ingredients (lines starting with - or •) ONLY in ingredients section
+                if (inIngredientsSection && line.match(/^[-•*]\s/)) {
+                    ingredients.push(line.replace(/^[-•*]\s+/, ''));
+                    continue;
+                }
+
+                // Parse numbered steps ONLY if we're in steps section or found a clear step pattern
+                // Must be: number followed by . or ) and then at least 10 characters
+                const stepMatch = line.match(/^(\d+)[\.\)]\s+(.{10,})$/);
+                if (stepMatch && (inStepsSection || parseInt(stepMatch[1]) <= 20)) {
+                    const stepNum = parseInt(stepMatch[1]);
+
+                    // Only accept sequential steps (no jumps > 2)
+                    if (steps.length > 0 && stepNum > steps.length + 2) {
+                        // This is probably not a recipe step, skip it
+                        continue;
+                    }
+
+                    // Save previous step
+                    if (currentStep) {
+                        steps.push(currentStep);
+                    }
+
+                    // Start new step
+                    const stepContent = stepMatch[2];
+                    currentStep = {
+                        title: extractTitle(stepContent),
+                        content: stepContent,
+                        ingredients: steps.length === 0 && ingredients.length > 0 ? ingredients : null,
+                        timer: extractTimer(stepContent),
+                        temperature: extractTemperature(stepContent),
+                        tips: null
+                    };
+                    inIngredientsSection = false;
+                    continue;
+                }
+
+                // If we're in a step and this is a continuation line (not too short)
+                if (currentStep && !inIngredientsSection && line.length > 5) {
+                    currentStep.content += ' ' + line;
+                }
+            }
+
+            // Add the last step
+            if (currentStep) {
+                steps.push(currentStep);
+            }
+
+            // Sanity check: if we got too many steps, something went wrong
+            if (steps.length > 50) {
+                throw new Error(`נמצאו יותר מדי שלבים (${steps.length}). אנא ודא שהמתכון מכיל רק את השלבים הממוספרים, ללא טקסט נוסף.`);
+            }
+
+            // If no numbered steps found, try to split by double line breaks (paragraphs)
+            if (steps.length === 0) {
+                const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 30);
+
+                if (paragraphs.length > 50) {
+                    throw new Error('לא נמצאו שלבים ממוספרים במתכון. אנא ודא שהמתכון כולל שלבים כמו "1. ..." או "2. ..."');
+                }
+
+                paragraphs.forEach((para, index) => {
+                    steps.push({
+                        title: `שלב ${index + 1}`,
+                        content: para.trim(),
+                        ingredients: index === 0 && ingredients.length > 0 ? ingredients : null,
+                        timer: extractTimer(para),
+                        temperature: extractTemperature(para),
+                        tips: null
+                    });
+                });
+            }
+
+            return steps;
+        }
+
+        function extractTitle(text) {
+            // Try to extract a title from the first sentence or first few words
+            const firstSentence = text.split(/[.!?]/)[0];
+            if (firstSentence.length < 50) {
+                return firstSentence;
+            }
+            // Otherwise use first 5 words
+            const words = text.split(' ').slice(0, 5).join(' ');
+            return words + '...';
+        }
+
+        function extractTimer(text) {
+            // Look for time patterns like "30 דקות", "2 שעות", "30 minutes", "2 hours"
+            const timePatterns = [
+                /(\d+)\s*(דקות|דקה|minutes?|mins?)/i,
+                /(\d+)\s*(שעות|שעה|hours?|hrs?)/i,
+                /(\d+)-(\d+)\s*(דקות|דקה|minutes?|mins?)/i,
+                /(\d+)-(\d+)\s*(שעות|שעה|hours?|hrs?)/i
+            ];
+
+            for (const pattern of timePatterns) {
+                const match = text.match(pattern);
+                if (match) {
+                    let duration = parseInt(match[1]);
+                    const unit = match[2] || match[3];
+
+                    // Convert hours to minutes
+                    if (unit.match(/שעות|שעה|hours?|hrs?/i)) {
+                        duration *= 60;
+                    }
+
+                    // If it's a range, use the average
+                    if (match[2] && !isNaN(parseInt(match[2]))) {
+                        duration = Math.round((parseInt(match[1]) + parseInt(match[2])) / 2);
+                    }
+
+                    return {
+                        duration: duration,
+                        label: match[0]
+                    };
+                }
+            }
+
+            return null;
+        }
+
+        function extractTemperature(text) {
+            // Look for temperature patterns like "180°C", "350°F"
+            const tempMatch = text.match(/(\d+)\s*°?\s*([CF])/i);
+            if (tempMatch) {
+                return `תנור: ${tempMatch[1]}°${tempMatch[2].toUpperCase()}`;
+            }
+            return null;
         }
 
         function loadCustomRecipe() {
