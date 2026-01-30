@@ -614,18 +614,32 @@
 <body>
     <div class="header">
         <h1>
-            <span>🍞 מדריך לחם מחמצת</span>
+            <span>🍞 לחם מחמצת</span>
             <span class="active-timers" id="activeTimersIndicator"></span>
         </h1>
         <div class="progress-bar">
             <div class="progress-fill" id="progressBar"></div>
         </div>
         <div class="global-timers-section" id="globalTimersSection">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
                 <div class="global-timers-title">🍞 הלחמים שלי</div>
-                <button class="btn btn-success" onclick="createNewBread()" style="padding: 6px 12px; font-size: 0.85em;">
-                    ➕ לחם חדש
-                </button>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-success" onclick="createNewBread()" style="padding: 6px 12px; font-size: 0.85em;">
+                        ➕ לחם חדש
+                    </button>
+                    <button class="btn" onclick="toggleRecipeLoader()" style="padding: 6px 12px; font-size: 0.85em; background: #ffc107; color: #856404;">
+                        📖 מתכון
+                    </button>
+                </div>
+            </div>
+            <div id="recipeLoaderSection" style="display: none; margin-bottom: 10px;">
+                <div style="background: rgba(255, 193, 7, 0.2); border-radius: 6px; padding: 10px;">
+                    <input type="text" id="recipeUrlInput" placeholder="https://example.com/my-recipe.json" style="width: 100%; padding: 8px; border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 8px; direction: ltr; text-align: left; font-size: 0.85em;" />
+                    <button onclick="loadCustomRecipe()" style="width: 100%; background: #ffc107; color: #856404; border: none; padding: 8px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.85em;">טען מתכון</button>
+                    <div style="margin-top: 6px; font-size: 0.75em; color: rgba(255,255,255,0.9); text-align: center;">
+                        או הוסף ?recipe=URL לכתובת הדף
+                    </div>
+                </div>
             </div>
             <div id="globalTimersList"></div>
         </div>
@@ -844,103 +858,24 @@
             return Math.max(0, timer.remaining - elapsed);
         }
 
-        function renderCompactBreadSelector() {
-            const breadList = Object.keys(breads).map(id => {
-                const bread = breads[id];
-                const isActive = id === currentBreadId;
-                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
 
-                // Get active timers for this bread
-                let timerInfo = '';
-                const activeTimers = [];
-                Object.entries(bread.timers).forEach(([timerId, timer]) => {
-                    if (timer.running) {
-                        const remaining = getTimerRemaining(timer);
-                        activeTimers.push(formatTime(remaining));
-                    }
-                });
-
-                if (activeTimers.length > 0) {
-                    timerInfo = `<div class="bread-timer-info">⏱️ ${activeTimers.join(', ')}</div>`;
-                }
-
-                return `
-                    <div class="bread-item ${isActive ? 'active' : ''}" data-bread-id="${id}">
-                        <div class="bread-item-header">
-                            <div class="bread-item-info" onclick="switchBread('${id}')">
-                                <div class="bread-name">${bread.name}</div>
-                                <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
-                                ${timerInfo}
-                            </div>
-                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            return `
-                <div class="sticky-bread-selector">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h3 style="margin: 0;">הלחמים שלי:</h3>
-                        <button class="btn btn-success" onclick="createNewBread()" style="padding: 6px 12px; font-size: 0.9em;">
-                            ➕ לחם חדש
-                        </button>
-                    </div>
-                    ${breadList}
-                </div>
-            `;
-        }
-
-        function renderBreadSelector() {
-            const breadList = Object.keys(breads).map(id => {
-                const bread = breads[id];
-                const isActive = id === currentBreadId;
-                const progress = Math.round((bread.currentStep + 1) / recipeSteps.length * 100);
-                return `
-                    <div class="bread-item ${isActive ? 'active' : ''}">
-                        <div class="bread-item-header">
-                            <div class="bread-item-info" onclick="switchBread('${id}')">
-                                <div class="bread-name">${bread.name}</div>
-                                <div class="bread-progress">${progress}% - שלב ${bread.currentStep + 1}/${recipeSteps.length}</div>
-                            </div>
-                            <button class="btn-delete" onclick="event.stopPropagation(); confirmDeleteBread('${id}')">🗑️ מחק</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            const isCustomRecipe = recipeSteps !== defaultRecipe;
-            const recipeInfo = isCustomRecipe ? `
-                <div class="recipe-info">
-                    📖 משתמש במתכון מותאם אישית (${recipeSteps.length} שלבים)
-                </div>
-            ` : '';
-
-            return `
-                <div class="bread-selector">
-                    ${recipeInfo}
-                    <h3>הלחמים שלי:</h3>
-                    ${breadList}
-                    <button class="btn btn-success" onclick="createNewBread()" style="margin-top: 10px; width: 100%;">
-                        ➕ התחל לחם חדש
-                    </button>
-
-                    <div class="recipe-loader" style="margin-top: 20px;">
-                        <h4>📖 טען מתכון מותאם אישית</h4>
-                        <input type="text" id="recipeUrlInput" placeholder="https://example.com/my-recipe.json" />
-                        <button onclick="loadCustomRecipe()">טען מתכון</button>
-                        <div style="margin-top: 10px; font-size: 0.85em; color: #856404;">
-                            או הוסף ?recipe=URL לכתובת הדף
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
 
         function renderStep() {
             const bread = getCurrentBread();
             if (!bread) {
-                document.getElementById('stepContainer').innerHTML = renderBreadSelector();
+                // If no bread is selected, show a welcome message
+                document.getElementById('stepContainer').innerHTML = `
+                    <div class="step-card" style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 4em; margin-bottom: 20px;">🍞</div>
+                        <h2 style="color: #5d4037; margin-bottom: 15px;">ברוכים הבאים!</h2>
+                        <p style="font-size: 1.1em; color: #666; margin-bottom: 20px;">
+                            התחל לחם חדש כדי להתחיל באפייה
+                        </p>
+                        <button class="btn btn-success" onclick="createNewBread()" style="font-size: 1.1em; padding: 12px 24px;">
+                            ➕ התחל לחם חדש
+                        </button>
+                    </div>
+                `;
                 return;
             }
 
@@ -1085,6 +1020,9 @@
                 // Start: record start time
                 timer.running = true;
                 timer.startTime = Date.now();
+
+                // Initialize audio on first timer start (required for iOS/Android)
+                initializeAudio();
             }
 
             const domTimerId = `${bread.id}-${timerId}`;
@@ -1305,28 +1243,48 @@
             timerUpdateInterval = setInterval(updateAllTimers, 1000);
         }
 
+        // Audio element for notifications - initialized on first user interaction
+        let notificationAudio = null;
+        let audioInitialized = false;
+
+        function initializeAudio() {
+            if (audioInitialized) return;
+
+            // Create audio element with a simple beep sound (data URI)
+            // This is a short beep sound encoded as base64 MP3
+            notificationAudio = new Audio('data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAADhAC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7v/////////////////////////////////////////////////////////////////AAAAOUxhdmM1OC4xMzQAAAAAAAAAAAAAAAAkAAAAAAAAA4S/Vp0NAAAAAAAAAAAAAAAAAAAAAAAAAP/7kGQAD/AAAGkAAAAIAAANIAAAAQAAAaQAAAAgAAA0gAAABExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/7kGQAD/AAAGkAAAAIAAANIAAAAQAAAaQAAAAgAAA0gAAABFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==');
+            notificationAudio.volume = 0.7;
+            audioInitialized = true;
+        }
+
         function playNotification() {
-            // Create multiple beep sounds for better attention
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            // Initialize audio if not already done
+            initializeAudio();
 
-            // Beep 3 times
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-
-                    oscillator.frequency.value = 800;
-                    oscillator.type = 'sine';
-
-                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
-                }, i * 400);
+            // Try to play the audio
+            if (notificationAudio) {
+                // Play 3 beeps
+                let beepCount = 0;
+                const playBeep = () => {
+                    if (beepCount < 3) {
+                        notificationAudio.currentTime = 0;
+                        notificationAudio.play().catch(err => {
+                            console.log('Audio play failed:', err);
+                            // Fallback to vibration on mobile if audio fails
+                            if ('vibrate' in navigator) {
+                                navigator.vibrate([200, 100, 200, 100, 200]);
+                            }
+                        });
+                        beepCount++;
+                        setTimeout(playBeep, 400);
+                    }
+                };
+                playBeep();
+            } else {
+                // Fallback to vibration if audio not available
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([200, 100, 200, 100, 200]);
+                }
             }
         }
 
@@ -1357,6 +1315,7 @@
             };
             currentBreadId = breadId;
             saveProgress();
+            updateActiveTimersIndicator(); // Update the header bread list
             renderStep();
         }
 
@@ -1420,18 +1379,19 @@
         function deleteBread(breadId) {
             delete breads[breadId];
 
-            // If we deleted the current bread, go back to bread selector
+            // If we deleted the current bread, clear selection
             if (currentBreadId === breadId) {
                 currentBreadId = null;
             }
 
-            // If no breads left, create a new one
+            // If no breads left, reset the counter
             if (Object.keys(breads).length === 0) {
-                createNewBread();
-            } else {
-                saveProgress();
-                renderStep();
+                breadCounter = 0;
             }
+
+            saveProgress();
+            updateActiveTimersIndicator(); // Update the header bread list
+            renderStep();
         }
 
         function nextStep() {
@@ -1491,10 +1451,7 @@
                 }
             }
 
-            // Create first bread if none exist
-            if (Object.keys(breads).length === 0) {
-                createNewBread();
-            }
+            // Don't auto-create bread - let user create when ready
         }
 
         async function loadRecipeFromURL() {
@@ -1546,6 +1503,13 @@
             }
         }
 
+        function toggleRecipeLoader() {
+            const section = document.getElementById('recipeLoaderSection');
+            if (section) {
+                section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
         function loadCustomRecipe() {
             const input = document.getElementById('recipeUrlInput');
             const url = input ? input.value.trim() : '';
@@ -1561,6 +1525,12 @@
             }
 
             loadRecipeFromUrlString(url);
+
+            // Hide the recipe loader after loading
+            const section = document.getElementById('recipeLoaderSection');
+            if (section) {
+                section.style.display = 'none';
+            }
         }
 
         // Request notification permission
