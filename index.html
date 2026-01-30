@@ -417,6 +417,57 @@
         .bread-item-info {
             flex: 1;
         }
+
+        .recipe-loader {
+            background: #fff3cd;
+            border: 2px dashed #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recipe-loader h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 1em;
+        }
+
+        .recipe-loader input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .recipe-loader button {
+            background: #ffc107;
+            color: #856404;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .recipe-loader button:hover {
+            background: #e0a800;
+        }
+
+        .recipe-info {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #0c5460;
+        }
         
         @media (max-width: 480px) {
             .container {
@@ -615,13 +666,30 @@
                 `;
             }).join('');
 
+            const isCustomRecipe = recipeSteps !== defaultRecipe;
+            const recipeInfo = isCustomRecipe ? `
+                <div class="recipe-info">
+                    📖 משתמש במתכון מותאם אישית (${recipeSteps.length} שלבים)
+                </div>
+            ` : '';
+
             return `
                 <div class="bread-selector">
+                    ${recipeInfo}
                     <h3>הלחמים שלי:</h3>
                     ${breadList}
                     <button class="btn btn-success" onclick="createNewBread()" style="margin-top: 10px; width: 100%;">
                         ➕ התחל לחם חדש
                     </button>
+
+                    <div class="recipe-loader" style="margin-top: 20px;">
+                        <h4>📖 טען מתכון מותאם אישית</h4>
+                        <input type="text" id="recipeUrlInput" placeholder="https://example.com/my-recipe.json" />
+                        <button onclick="loadCustomRecipe()">טען מתכון</button>
+                        <div style="margin-top: 10px; font-size: 0.85em; color: #856404;">
+                            או הוסף ?recipe=URL לכתובת הדף
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -1100,18 +1168,65 @@
             const recipeUrl = params.get('recipe');
 
             if (recipeUrl) {
-                try {
-                    const response = await fetch(recipeUrl);
-                    const recipe = await response.json();
-                    if (Array.isArray(recipe) && recipe.length > 0) {
-                        recipeSteps = recipe;
-                        console.log('Loaded custom recipe from:', recipeUrl);
-                    }
-                } catch (e) {
-                    console.error('Failed to load recipe from URL:', e);
-                    alert('שגיאה בטעינת המתכון מה-URL. משתמש במתכון ברירת המחדל.');
-                }
+                await loadRecipeFromUrlString(recipeUrl);
             }
+        }
+
+        async function loadRecipeFromUrlString(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const recipe = await response.json();
+
+                // Validate recipe structure
+                if (!Array.isArray(recipe) || recipe.length === 0) {
+                    throw new Error('המתכון חייב להיות מערך עם לפחות שלב אחד');
+                }
+
+                // Validate each step has required fields
+                for (let i = 0; i < recipe.length; i++) {
+                    const step = recipe[i];
+                    if (!step.title || !step.content) {
+                        throw new Error(`שלב ${i + 1} חסר שדות נדרשים (title, content)`);
+                    }
+                }
+
+                recipeSteps = recipe;
+                console.log('Loaded custom recipe from:', url);
+                alert(`✅ המתכון נטען בהצלחה!\n\n${recipe.length} שלבים במתכון החדש.`);
+
+                // Reset all breads to use new recipe
+                Object.keys(breads).forEach(id => {
+                    breads[id].currentStep = 0;
+                    breads[id].timers = {};
+                });
+
+                saveProgress();
+                renderStep();
+
+            } catch (e) {
+                console.error('Failed to load recipe from URL:', e);
+                alert(`❌ שגיאה בטעינת המתכון:\n\n${e.message}\n\nמשתמש במתכון הנוכחי.`);
+            }
+        }
+
+        function loadCustomRecipe() {
+            const input = document.getElementById('recipeUrlInput');
+            const url = input ? input.value.trim() : '';
+
+            if (!url) {
+                alert('אנא הזן כתובת URL של מתכון');
+                return;
+            }
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                alert('כתובת ה-URL חייבת להתחיל ב-http:// או https://');
+                return;
+            }
+
+            loadRecipeFromUrlString(url);
         }
 
         // Request notification permission
