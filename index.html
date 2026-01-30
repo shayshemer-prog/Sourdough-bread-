@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#8B4513">
+    <title>מדריך לאפיית לחם מחמצת</title>
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU291cmRvdWdoIEJyZWFkIEd1aWRlIiwic2hvcnRfbmFtZSI6IlNvdXJkb3VnaCIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmZmZmIiwidGhlbWVfY29sb3IiOiIjOEI0NTEzIn0=">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5e6d3 0%, #d4a574 100%);
+            min-height: 100vh;
+            padding-bottom: 80px;
+            direction: rtl;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: space-between;
+        }
+        
+        .active-timers {
+            font-size: 0.7em;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .timer-pulse {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .progress-bar {
+            background: rgba(255,255,255,0.3);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            background: white;
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .step-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .step-number {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .step-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .step-content {
+            color: #555;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+        
+        .ingredients {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .ingredients h4 {
+            color: #8B4513;
+            margin-bottom: 10px;
+        }
+        
+        .ingredient-item {
+            padding: 5px 0;
+            color: #555;
+        }
+        
+        .timer-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .timer-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .timer-label {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        
+        .timer-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        
+        .btn-primary:hover {
+            background: #f0f0f0;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+        
+        .btn-next {
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            justify-content: center;
+            font-size: 1.1em;
+        }
+        
+        .btn-back {
+            background: #95a5a6;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .navigation {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .completion {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .completion h2 {
+            color: #8B4513;
+            font-size: 2em;
+            margin: 20px 0;
+        }
+        
+        .completion-icon {
+            font-size: 4em;
+        }
+        
+        .tips {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        
+        .tips strong {
+            color: #f39c12;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .temperature {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: 500;
+            color: #2e7d32;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .step-card {
+                padding: 20px;
+            }
+            
+            .timer-display {
+                font-size: 2em;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>🍞 מדריך לחם מחמצת</span>
+            <span class="active-timers" id="activeTimersIndicator"></span>
+        </h1>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="stepContainer"></div>
+    </div>
+
+    <script>
+        const recipeSteps = [
+            {
+                title: "הכנת השאור",
+                content: "ודאו ששאור המחמצת שלכם פעיל ומבעבע. הוא צריך להכפיל את עצמו בגודל ולעבור את מבחן הציפה (כפית שאור צפה במים).",
+                ingredients: [
+                    "100 גרם שאור פעיל",
+                    "500 גרם קמח לחם (או קמח רגיל)",
+                    "350 גרם מים (בטמפרטורת החדר)",
+                    "10 גרם מלח"
+                ],
+                timer: null,
+                tips: "אם השאור לא הוזן לאחרונה, האכילו אותו 4-8 שעות לפני ההתחלה. הוא צריך להריח חמצמץ ומתוק מעט."
+            },
+            {
+                title: "אוטוליזה (ערבוב קמח ומים)",
+                content: "ערבבו את הקמח ו-325 גרם מים (שמרו 25 גרם למאוחר יותר) בקערה גדולה. ערבבו עד שלא נשאר קמח יבש. זה מאפשר לקמח להספג ומפתח גלוטן באופן טבעי.",
+                timer: { duration: 30, label: "מנוחת אוטוליזה" },
+                tips: "אל תוסיפו מלח או שאור עדיין! תקופת המנוחה הזו הופכת את הבצק לקל יותר לעבודה."
+            },
+            {
+                title: "הוספת שאור ומלח",
+                content: "הוסיפו את השאור הפעיל והמלח לבצק. השתמשו ב-25 גרם המים הנותרים כדי לסייע בהמסת המלח. לחצו הכל ביחד עם הידיים עד שהכל משולב לחלוטין - זה יהיה דביק ומבולגן!",
+                timer: null,
+                tips: "הרטיבו את הידיים כדי למנוע הידבקות. הבצק יהיה פרוע בהתחלה - זה נורמלי."
+            },
+            {
+                title: "תסיסה ראשונית - מתיחה וקיפול",
+                content: "עכשיו מתחילה התסיסה הראשונית! במהלך 3-4 השעות הבאות, בצעו 4 סטים של מתיחה וקיפול, במרווחים של 30 דקות. לביצוע מתיחה וקיפול: הרטיבו את הידיים, אחזו בצד אחד של הבצק, מתחו אותו למעלה, וקפלו אותו. סובבו את הקערה 90 מעלות וחזרו 4 פעמים.",
+                timer: { duration: 30, label: "מתיחה וקיפול הבא", repeatable: true },
+                temperature: "שמרו בטמפרטורה של 24-26°C. חם יותר = תסיסה מהירה יותר.",
+                tips: "אחרי 4 סטים של מתיחה וקיפול, תנו לבצק לנוח למשך 2-2.5 שעות הנותרות. הוא צריך לגדול ב-30-50% בנפח ולהרגיש אוורירי."
+            },
+            {
+                title: "עיצוב ועיצוב מקדים",
+                content: "הפכו את הבצק על משטח מקומח קלות. עצבו בעדינות לכדור על ידי משיכת הקצוות למרכז. תנו לו לנוח 20-30 דקות (מנוחת ספסל), ואז בצעו את העיצוב הסופי: הפכו אותו, צרו מתח על ידי משיכת הבצק לעברכם תוך כדי סיבוב.",
+                timer: { duration: 25, label: "מנוחת ספסל" },
+                tips: "אל תוסיפו יותר מדי קמח! אתם רוצים שהבצק יידבק מעט לשולחן כדי ליצור מתח."
+            },
+            {
+                title: "תפיחה קרה במקרר",
+                content: "הניחו את הבצק המעוצב עם הצד התפור כלפי מעלה בסל תסיסה מקומח או בקערה מרופדת במגבת. כסו היטב והכניסו למקרר ל-8-24 שעות. זה מפתח טעם והופך את החריצה לקלה יותר.",
+                timer: { duration: 480, label: "תפיחה קרה (מינימום 8 שעות)" },
+                tips: "ארוך יותר = טעם חמוץ יותר! אפשר להגיע עד 36 שעות במידת הצורך. 💡 תזכורת: לפני שתוציאו את הבצק מהמקרר, תצטרכו לחמם את התנור למשך 45-60 דקות עם סיר הולנדי בפנים."
+            },
+            {
+                title: "חימום תנור ואפייה",
+                content: "**חלק 1 - חימום (50 דק'):** חממו את התנור ל-260°C עם סיר הולנדי בפנים. תוך כדי, הוציאו את הבצק מהמקרר והניחו על נייר אפייה. חרצו בזהירות עם להב חד.\n\n**חלק 2 - אפייה (48 דק'):** הניחו את הבצק בסיר החם, סגרו מכסה. אפו 20 דק' ב-260°C, אז הסירו מכסה, הורידו ל-230°C, והמשיכו 28 דק'.",
+                timer: { duration: 50, label: "⏰ חימום התנור - התחילו כאן!" },
+                temperature: "תנור: 260°C → 230°C",
+                tips: "השתמשו בטיימר הזה לחימום התנור. כשהוא מצלצל, הכניסו את הלחם! אחר כך השתמשו בטיימר של הטלפון שלכם ל-20 דק' עם מכסה + 28 דק' בלי מכסה."
+            },
+            {
+                title: "קירור מלא",
+                content: "הוציאו את הלחם והניחו אותו על רשת קירור. זה החלק הקשה ביותר - אתם חייבים לחכות לפחות 1-2 שעות לפני החיתוך! הלחם עדיין מתבשל בפנים והפירורית מתקבעת.",
+                timer: { duration: 90, label: "זמן קירור" },
+                tips: "הקשיבו לו! לחם טרי מוציא צלילי פצפוץ כשהוא מתקרר. אם תחתכו מוקדם מדי, הפנים יהיה דביק."
+            }
+        ];
+
+        let currentStep = 0;
+        let timers = {};
+        let timerIntervals = {};
+
+        function updateActiveTimersIndicator() {
+            const indicator = document.getElementById('activeTimersIndicator');
+            if (!indicator) return;
+            
+            const activeCount = Object.values(timers).filter(t => t.running).length;
+            
+            if (activeCount > 0) {
+                indicator.innerHTML = `<span class="timer-pulse"></span> ${activeCount} טיימר${activeCount > 1 ? 'ים' : ''} פעיל${activeCount > 1 ? 'ים' : ''}`;
+                indicator.style.display = 'flex';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        function renderStep() {
+            const step = recipeSteps[currentStep];
+            const container = document.getElementById('stepContainer');
+            const progressBar = document.getElementById('progressBar');
+            
+            progressBar.style.width = ((currentStep + 1) / recipeSteps.length * 100) + '%';
+            
+            updateActiveTimersIndicator();
+            
+            if (currentStep >= recipeSteps.length) {
+                container.innerHTML = `
+                    <div class="step-card completion">
+                        <div class="completion-icon">🎉</div>
+                        <h2>כל הכבוד!</h2>
+                        <p style="font-size: 1.2em; color: #555; margin: 20px 0;">אפיתם כיכר לחם מחמצת מדהימה!</p>
+                        <p style="color: #777;">תהנו מהלחם הביתי שלכם. ככל שתתרגלו יותר, כך זה יהיה טוב יותר!</p>
+                        <button class="btn btn-success" onclick="resetApp()" style="margin-top: 30px;">
+                            🔄 התחל כיכר חדשה
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="step-card">
+                    <div class="step-header">
+                        <div class="step-number">${currentStep + 1}</div>
+                        <div class="step-title">${step.title}</div>
+                    </div>
+                    
+                    <div class="step-content">
+                        ${step.content}
+                    </div>
+            `;
+            
+            if (step.ingredients) {
+                html += `
+                    <div class="ingredients">
+                        <h4>📝 מצרכים:</h4>
+                        ${step.ingredients.map(ing => `<div class="ingredient-item">• ${ing}</div>`).join('')}
+                    </div>
+                `;
+            }
+            
+            if (step.temperature) {
+                html += `<div class="temperature">🌡️ ${step.temperature}</div>`;
+            }
+            
+            if (step.tips) {
+                html += `
+                    <div class="tips">
+                        <strong>💡 Tip:</strong> ${step.tips}
+                    </div>
+                `;
+            }
+            
+            if (step.timer) {
+                const timerId = `timer-${currentStep}`;
+                const timerState = timers[timerId] || { remaining: step.timer.duration * 60, running: false };
+                
+                html += `
+                    <div class="timer-section">
+                        <div class="timer-label">${step.timer.label}</div>
+                        <div class="timer-display" id="${timerId}-display">
+                            ${formatTime(timerState.remaining)}
+                        </div>
+                        <div class="timer-buttons">
+                            <button class="btn btn-primary" onclick="toggleTimer('${timerId}', ${step.timer.duration * 60})">
+                                <span id="${timerId}-btn-text">${timerState.running ? '⏸️ השהה' : '▶️ התחל'}</span>
+                            </button>
+                            <button class="btn btn-primary" onclick="resetTimer('${timerId}', ${step.timer.duration * 60})">
+                                🔄 אפס
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `
+                    <div class="navigation">
+                        ${currentStep > 0 ? '<button class="btn btn-back" onclick="previousStep()">→ הקודם</button>' : ''}
+                        <button class="btn btn-next" onclick="nextStep()">
+                            ${currentStep < recipeSteps.length - 1 ? 'הבא ←' : 'סיום! 🎉'}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Restore running timers
+            Object.keys(timers).forEach(timerId => {
+                if (timers[timerId].running) {
+                    startTimerInterval(timerId);
+                }
+            });
+        }
+
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            }
+            return `${minutes}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function toggleTimer(timerId, initialDuration) {
+            if (!timers[timerId]) {
+                timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
+            }
+            
+            const timer = timers[timerId];
+            timer.running = !timer.running;
+            
+            if (timer.running) {
+                timer.startTime = Date.now();
+            } else {
+                timer.startTime = null;
+            }
+            
+            const btnText = document.getElementById(`${timerId}-btn-text`);
+            if (timer.running) {
+                btnText.textContent = '⏸️ השהה';
+                startTimerInterval(timerId);
+            } else {
+                btnText.textContent = '▶️ התחל';
+                stopTimerInterval(timerId);
+            }
+            
+            updateActiveTimersIndicator();
+            saveProgress();
+        }
+
+        function startTimerInterval(timerId) {
+            if (timerIntervals[timerId]) {
+                clearInterval(timerIntervals[timerId]);
+            }
+            
+            timerIntervals[timerId] = setInterval(() => {
+                const timer = timers[timerId];
+                if (timer.remaining > 0) {
+                    timer.remaining--;
+                    const display = document.getElementById(`${timerId}-display`);
+                    if (display) {
+                        display.textContent = formatTime(timer.remaining);
+                    }
+                    saveProgress();
+                } else {
+                    stopTimerInterval(timerId);
+                    timer.running = false;
+                    timer.startTime = null;
+                    playNotification();
+                    showNotification('⏰ הטיימר הסתיים!');
+                    const btnText = document.getElementById(`${timerId}-btn-text`);
+                    if (btnText) {
+                        btnText.textContent = '▶️ התחל';
+                    }
+                    updateActiveTimersIndicator();
+                    saveProgress();
+                }
+            }, 1000);
+        }
+
+        function stopTimerInterval(timerId) {
+            if (timerIntervals[timerId]) {
+                clearInterval(timerIntervals[timerId]);
+                delete timerIntervals[timerId];
+            }
+        }
+
+        function resetTimer(timerId, initialDuration) {
+            stopTimerInterval(timerId);
+            timers[timerId] = { remaining: initialDuration, running: false, startTime: null };
+            const display = document.getElementById(`${timerId}-display`);
+            if (display) {
+                display.textContent = formatTime(initialDuration);
+            }
+            const btnText = document.getElementById(`${timerId}-btn-text`);
+            if (btnText) {
+                btnText.textContent = '▶️ התחל';
+            }
+            saveProgress();
+        }
+
+        function playNotification() {
+            // Create multiple beep sounds for better attention
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Beep 3 times
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                }, i * 400);
+            }
+        }
+
+        function showNotification(message) {
+            // Try browser notification first
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('לחם מחמצת', {
+                    body: message,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="80" font-size="80">🍞</text></svg>',
+                    tag: 'sourdough-timer',
+                    requireInteraction: true
+                });
+            } else {
+                // Fallback to alert
+                alert(message);
+            }
+        }
+
+        function nextStep() {
+            currentStep++;
+            saveProgress();
+            window.scrollTo(0, 0);
+            renderStep();
+        }
+
+        function previousStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                saveProgress();
+                window.scrollTo(0, 0);
+                renderStep();
+            }
+        }
+
+        function resetApp() {
+            currentStep = 0;
+            timers = {};
+            Object.keys(timerIntervals).forEach(stopTimerInterval);
+            saveProgress();
+            renderStep();
+        }
+
+        function saveProgress() {
+            const timerData = {};
+            Object.keys(timers).forEach(timerId => {
+                const timer = timers[timerId];
+                timerData[timerId] = {
+                    remaining: timer.remaining,
+                    running: timer.running,
+                    startTime: timer.startTime || null
+                };
+            });
+            
+            localStorage.setItem('sourdoughProgress', JSON.stringify({
+                currentStep,
+                timers: timerData
+            }));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('sourdoughProgress');
+            if (saved) {
+                const data = JSON.parse(saved);
+                currentStep = data.currentStep || 0;
+                
+                // Restore timers and calculate elapsed time for running timers
+                if (data.timers) {
+                    const now = Date.now();
+                    Object.keys(data.timers).forEach(timerId => {
+                        const savedTimer = data.timers[timerId];
+                        if (savedTimer.running && savedTimer.startTime) {
+                            // Calculate how much time has passed
+                            const elapsed = Math.floor((now - savedTimer.startTime) / 1000);
+                            const remaining = Math.max(0, savedTimer.remaining - elapsed);
+                            timers[timerId] = {
+                                remaining: remaining,
+                                running: remaining > 0,
+                                startTime: now
+                            };
+                        } else {
+                            timers[timerId] = {
+                                remaining: savedTimer.remaining,
+                                running: false,
+                                startTime: null
+                            };
+                        }
+                    });
+                }
+            }
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Initialize app
+        loadProgress();
+        renderStep();
+    </script>
+</body>
+</html>
