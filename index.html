@@ -632,6 +632,38 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Recipe Selector -->
+            <div style="background: rgba(139, 69, 19, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                <div style="font-weight: 600; margin-bottom: 8px; color: #d4a574; font-size: 0.9em;">
+                    📚 בחר מתכון
+                </div>
+                <select id="recipeSelector" onchange="handleRecipeSelection()" style="width: 100%; padding: 8px; border: 1px solid #d4a574; border-radius: 4px; font-size: 0.85em; background: white; color: #333; font-family: inherit;">
+                    <option value="sourdough">🍞 לחם מחמצת קלאסי (13.5 שעות, מתקדם)</option>
+                    <option value="mixerSourdough">🥖 לחם מחמצת במיקסר (11 שעות, בינוני)</option>
+                </select>
+
+                <!-- Recipe Preview -->
+                <div id="recipePreviewBox" style="margin-top: 10px; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 10px; display: none;">
+                    <div style="font-weight: 600; margin-bottom: 6px; color: #ffd700; font-size: 0.85em;">
+                        👁️ תצוגה מקדימה
+                    </div>
+                    <div id="recipePreviewContent" style="font-size: 0.75em; color: rgba(255,255,255,0.9);">
+                        <!-- Preview content will be inserted here -->
+                    </div>
+                    <button onclick="previewRecipeDetails()" style="width: 100%; background: #4caf50; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.75em; margin-top: 6px;">
+                        📋 הצג את כל השלבים
+                    </button>
+                </div>
+
+                <div style="margin-top: 6px; font-size: 0.75em; color: rgba(255,255,255,0.9); text-align: center;">
+                    בחירת מתכון תאפס את כל הלחמים הקיימים
+                </div>
+                <button onclick="showAIPrompt()" style="width: 100%; background: #9c27b0; color: white; border: none; padding: 6px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 0.75em; margin-top: 6px;">
+                    🤖 הצג פרומפט ליצירת מתכון חדש עם AI
+                </button>
+            </div>
+
             <div id="recipeLoaderSection" style="display: none; margin-bottom: 10px;">
                 <div style="background: rgba(255, 193, 7, 0.2); border-radius: 6px; padding: 10px;">
                     <div style="margin-bottom: 8px; font-size: 0.85em; color: rgba(255,255,255,0.95); font-weight: 600;">
@@ -656,19 +688,66 @@
     </div>
 
     <script>
-        const defaultRecipe = [
+        // ============================================
+        // RECIPE LIBRARY - Multiple Built-in Recipes
+        // ============================================
+
+        /*
+        ═══════════════════════════════════════════════════════════════════════════
+        PROMPT FOR AI TO CREATE NEW RECIPES:
+        ═══════════════════════════════════════════════════════════════════════════
+
+        Create a bread recipe in the following JSON format. The recipe should be
+        detailed, step-by-step, and include timers for each waiting period.
+
+        Requirements:
+        1. Recipe must be in Hebrew (right-to-left)
+        2. Each step should have:
+           - title: Short step name (e.g., "ערבוב מרכיבים", "קיפול ראשון")
+           - content: Detailed instructions for this step
+           - ingredients: Array of ingredients with amounts (ONLY in first step, null for others)
+           - timer: {duration: minutes, label: "description"} or null if no waiting
+           - temperature: Temperature info as string or null
+           - tips: Helpful tips or null
+        3. Include ALL steps from start to finish: mixing, resting, folding, shaping, proofing, baking, cooling
+        4. Timer durations should be realistic (in minutes)
+        5. Maximum 20 steps
+
+        Return ONLY valid JavaScript array in this format:
+        [
             {
-                title: "הכנת השאור",
-                content: "ודאו ששאור המחמצת שלכם פעיל ומבעבע. הוא צריך להכפיל את עצמו בגודל ולעבור את מבחן הציפה (כפית שאור צפה במים).",
-                ingredients: [
-                    "100 גרם שאור פעיל",
-                    "500 גרם קמח לחם (או קמח רגיל)",
-                    "350 גרם מים (בטמפרטורת החדר)",
-                    "10 גרם מלח"
-                ],
-                timer: null,
-                tips: "אם השאור לא הוזן לאחרונה, האכילו אותו 4-8 שעות לפני ההתחלה. הוא צריך להריח חמצמץ ומתוק מעט."
+                title: "Step name in Hebrew",
+                content: "Detailed instructions in Hebrew",
+                ingredients: ["ingredient 1 with amount", "ingredient 2"] or null,
+                timer: {duration: 30, label: "Timer label in Hebrew"} or null,
+                temperature: "Temperature info in Hebrew" or null,
+                tips: "Helpful tips in Hebrew" or null
             },
+            // ... more steps
+        ]
+
+        ═══════════════════════════════════════════════════════════════════════════
+        */
+
+        const recipeLibrary = {
+            sourdough: {
+                name: "לחם מחמצת קלאסי",
+                description: "מתכון מסורתי ללחם מחמצת עם תסיסה ארוכה",
+                totalTime: "13.5 שעות",
+                difficulty: "מתקדם",
+                steps: [
+                    {
+                        title: "הכנת השאור",
+                        content: "ודאו ששאור המחמצת שלכם פעיל ומבעבע. הוא צריך להכפיל את עצמו בגודל ולעבור את מבחן הציפה (כפית שאור צפה במים).",
+                        ingredients: [
+                            "100 גרם שאור פעיל",
+                            "500 גרם קמח לחם (או קמח רגיל)",
+                            "350 גרם מים (בטמפרטורת החדר)",
+                            "10 גרם מלח"
+                        ],
+                        timer: null,
+                        tips: "אם השאור לא הוזן לאחרונה, האכילו אותו 4-8 שעות לפני ההתחלה. הוא צריך להריח חמצמץ ומתוק מעט."
+                    },
             {
                 title: "אוטוליזה (ערבוב קמח ומים)",
                 content: "ערבבו את הקמח ו-325 גרם מים (שמרו 25 גרם למאוחר יותר) בקערה גדולה. ערבבו עד שלא נשאר קמח יבש. זה מאפשר לקמח להספג ומפתח גלוטן באופן טבעי.",
@@ -755,9 +834,155 @@
                 timer: { duration: 90, label: "זמן קירור" },
                 tips: "הקשיבו לו! לחם טרי מוציא צלילי פצפוץ כשהוא מתקרר. אם תחתכו מוקדם מדי, הפנים יהיה דביק."
             }
-        ];
+                ]
+            },
+            mixerSourdough: {
+                name: "לחם מחמצת במיקסר",
+                description: "מתכון ללחם מחמצת עם שימוש במיקסר - קל יותר ומהיר יותר",
+                totalTime: "10.5 שעות",
+                difficulty: "בינוני",
+                steps: [
+                    {
+                        title: "ערבוב ראשוני ואוטוליזה",
+                        content: "מערבבים בקערת מיקסר את הקמח הלבן, הקמח המלא והמים במשך 1-2 דקות רק עד שהקמח נטמע. מכסים את הקערה במגבת ומניחים לבצק לנוח בטמפרטורת החדר.",
+                        ingredients: [
+                            "320 גרם קמח לבן",
+                            "80 גרם קמח מלא (שיפון או כוסמין)",
+                            "300 גרם מים",
+                            "80 גרם מחמצת פעילה",
+                            "8 גרם מלח"
+                        ],
+                        timer: { duration: 90, label: "מנוחה (אוטוליזה) לשיפור הגלוטן" },
+                        temperature: "טמפרטורת החדר",
+                        tips: "האוטוליזה מקצרת את זמן הלישה והופכת את הבצק לגמיש ונוח יותר לעבודה."
+                    },
+                    {
+                        title: "הוספת מחמצת ולישה",
+                        content: "מוסיפים את המחמצת לבצק ולשים במהירות נמוכה במיקסר.",
+                        ingredients: null,
+                        timer: { duration: 3, label: "לישה עם מחמצת" },
+                        temperature: null,
+                        tips: "חשוב לוודא שהמחמצת בשיאה - בועתית, פעילה ולאחר שהכפילה את נפחה."
+                    },
+                    {
+                        title: "הוספת מלח ולישה סופית",
+                        content: "מוסיפים את המלח וממשיכים ללוש במהירות נמוכה. הבצק מוכן כאשר הוא ניתק מדפנות הקערה אך נותר מחובר מעט בתחתית.",
+                        ingredients: null,
+                        timer: { duration: 5, label: "לישה עם מלח" },
+                        temperature: null,
+                        tips: "אל תתפתו להגביר את מהירות המיקסר; לישה איטית שומרת על מבנה הבצק."
+                    },
+                    {
+                        title: "מנוחה ראשונה",
+                        content: "מעבירים את הבצק לקערה נקייה, מכסים במגבת ומניחים לו לנוח.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה לפני תחילת הקיפולים" },
+                        temperature: null,
+                        tips: null
+                    },
+                    {
+                        title: "סדרת קיפולים - חלק א'",
+                        content: "מבצעים את הקיפול הראשון: מרטיבים מעט את הידיים, מותחים צד אחד של הבצק כלפי מעלה ומניחים אותו בעדינות בצד הנגדי. חוזרים על הפעולה עם ארבעת צדדי הבצק ומכסים.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה בין קיפולים" },
+                        temperature: null,
+                        tips: "עבודה עם ידיים רטובות מונעת מהבצק להידבק ומקלה על המתיחה."
+                    },
+                    {
+                        title: "סדרת קיפולים - חלק ב'",
+                        content: "מבצעים קיפול שני באותו אופן: מתיחה של ארבעת הצדדים כלפי המרכז ומנוחה.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה בין קיפולים" },
+                        temperature: null,
+                        tips: "הקיפולים מחזקים את הבצק וכולאים בתוכו אוויר ליצירת בועות."
+                    },
+                    {
+                        title: "סדרת קיפולים - חלק ג'",
+                        content: "מבצעים קיפול שלישי של ארבעת צדדי הבצק ומכסים.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה בין קיפולים" },
+                        temperature: null,
+                        tips: null
+                    },
+                    {
+                        title: "סדרת קיפולים - חלק ד'",
+                        content: "מבצעים קיפול רביעי ואחרון. לאחר הקיפול הבצק אמור להיות חזק ותפוח יותר.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה לפני עיצוב מקדים" },
+                        temperature: null,
+                        tips: null
+                    },
+                    {
+                        title: "עיצוב מקדים",
+                        content: "מעבירים את הבצק למשטח עבודה. יוצרים קיפולים נוספים ליצירת חלק עליון חלק ומתוח בעזרת הידיים או קלף.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "מנוחה לפני עיצוב סופי" },
+                        temperature: null,
+                        tips: "שלב זה עוזר ליצור 'מתח פנים' שיעזור ללחם לעלות למעלה באפייה ולא להשתטח."
+                    },
+                    {
+                        title: "עיצוב סופי",
+                        content: "מעצבים את הבצק לצורת הכיכר הרצויה (עגולה או מלבנית). מקפידים שכל הקיפולים יהיו בחלק התחתון.",
+                        ingredients: null,
+                        timer: null,
+                        temperature: null,
+                        tips: "ניתן להשתמש בקמח אורז לקימוח הסלסלה כדי למנוע הידבקות."
+                    },
+                    {
+                        title: "התפחה שנייה",
+                        content: "מעבירים את הכיכר לסלסלת התפחה או לקערה עם מגבת מקומחת בתוכה ומכסים. מתפיחים בטמפרטורת החדר עד שהבצק תופח בכ-80%.",
+                        ingredients: null,
+                        timer: { duration: 240, label: "התפחה בטמפרטורת החדר" },
+                        temperature: "טמפרטורת החדר",
+                        tips: "ניתן להתפיח במקרר למשך 12-18 שעות לקבלת טעמים עמוקים יותר."
+                    },
+                    {
+                        title: "חימום התנור והסיר",
+                        content: "מחממים תנור ל-250 מעלות ומכניסים לתוכו סיר ברזל יצוק עם המכסה עד שהם לוהטים לגמרי.",
+                        ingredients: null,
+                        timer: { duration: 30, label: "חימום התנור והסיר" },
+                        temperature: "250 מעלות",
+                        tips: "הסיר הלוהט כולא את הלחות מהבצק ויוצר קראסט פריך."
+                    },
+                    {
+                        title: "חריצה",
+                        content: "מניחים את הבצק בזהירות רבה על מכסה הסיר הלוהט או בתוכו. בעזרת סכין חדה מאוד או תער, מבצעים חריץ עמוק (כ-1 ס\"מ) לאורך הכיכר.",
+                        ingredients: null,
+                        timer: null,
+                        temperature: null,
+                        tips: "חריצה בביטחון ובמהירות מאפשרת ללחם 'לפרוח' ולהתרחב בתנור."
+                    },
+                    {
+                        title: "אפייה סגורה",
+                        content: "מכסים את הסיר ומכניסים לתנור.",
+                        ingredients: null,
+                        timer: { duration: 25, label: "אפייה עם מכסה" },
+                        temperature: "250 מעלות",
+                        tips: "המכסה שומר על האדים הנחוצים להתפתחות הקרום."
+                    },
+                    {
+                        title: "אפייה פתוחה",
+                        content: "מסירים את המכסה בזהירות, מורידים את הטמפרטורה וממשיכים לאפות עד שהלחם שזוף מאוד ובעל צבע עמוק.",
+                        ingredients: null,
+                        timer: { duration: 25, label: "אפייה ללא מכסה" },
+                        temperature: "220 מעלות",
+                        tips: "ניתן לבדוק שהלחם מוכן אם טמפרטורת הליבה שלו היא סביב 96-98 מעלות."
+                    },
+                    {
+                        title: "צינון",
+                        content: "מוציאים את הלחם מהסיר ומניחים אותו על רשת צינון.",
+                        ingredients: null,
+                        timer: { duration: 60, label: "צינון הלחם" },
+                        temperature: null,
+                        tips: "אל תפרסו את הלחם בעודו חם! הצינון הכרחי להשלמת המרקם הפנימי ומניעת דביקות."
+                    }
+                ]
+            }
+        };
 
-        let recipeSteps = defaultRecipe;
+        // Get selected recipe from localStorage or default to sourdough
+        let currentRecipeKey = localStorage.getItem('selectedRecipe') || 'sourdough';
+        let recipeSteps = recipeLibrary[currentRecipeKey].steps;
 
         // Multi-bread support
         let breads = {};
@@ -1611,12 +1836,184 @@
             }
         }
 
-        function resetToDefaultRecipe() {
-            if (confirm('האם אתה בטוח שברצונך לחזור למתכון המקורי של לחם מחמצת?\n\nכל הלחמים הקיימים יאופסו.')) {
-                recipeSteps = defaultRecipe;
+        function handleRecipeSelection() {
+            const selector = document.getElementById('recipeSelector');
+            const selectedKey = selector.value;
+
+            // Show preview for the selected recipe
+            showRecipePreview(selectedKey);
+
+            // If it's already the current recipe, just show preview
+            if (selectedKey === currentRecipeKey) {
+                return;
+            }
+
+            // Check if there are any breads - if so, don't allow switching
+            if (Object.keys(breads).length > 0) {
+                alert('❌ לא ניתן להחליף מתכון כאשר יש לחמים פעילים!\n\nמחק את כל הלחמים לפני החלפת המתכון.');
+                // Revert selector to current recipe
+                selector.value = currentRecipeKey;
+                showRecipePreview(currentRecipeKey);
+                return;
+            }
+
+            // Otherwise, ask to switch
+            selectRecipe(selectedKey);
+        }
+
+        function showRecipePreview(recipeKey) {
+            const recipe = recipeLibrary[recipeKey];
+            if (!recipe) return;
+
+            const previewBox = document.getElementById('recipePreviewBox');
+            const previewContent = document.getElementById('recipePreviewContent');
+
+            if (!previewBox || !previewContent) return;
+
+            // Calculate total time
+            let totalMinutes = 0;
+            recipe.steps.forEach(step => {
+                if (step.timer && step.timer.duration) {
+                    totalMinutes += step.timer.duration;
+                }
+            });
+
+            // Get ingredients from first step
+            const ingredients = recipe.steps[0]?.ingredients || [];
+            const ingredientsText = ingredients.length > 0
+                ? ingredients.slice(0, 3).join(', ') + (ingredients.length > 3 ? '...' : '')
+                : 'לא צוין';
+
+            // Count steps with timers
+            const timerSteps = recipe.steps.filter(s => s.timer).length;
+
+            // Build preview HTML
+            previewContent.innerHTML = `
+                <div style="margin-bottom: 6px;">
+                    <strong>📖 שם:</strong> ${recipe.name}
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <strong>📝 תיאור:</strong> ${recipe.description}
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <strong>⏱️ זמן כולל:</strong> ${recipe.totalTime} (${totalMinutes} דקות)
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <strong>📊 רמת קושי:</strong> ${recipe.difficulty}
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <strong>🔢 מספר שלבים:</strong> ${recipe.steps.length} (${timerSteps} עם טיימר)
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <strong>🥖 מרכיבים עיקריים:</strong> ${ingredientsText}
+                </div>
+            `;
+
+            previewBox.style.display = 'block';
+        }
+
+        function previewRecipeDetails() {
+            const selector = document.getElementById('recipeSelector');
+            const selectedKey = selector.value;
+            const recipe = recipeLibrary[selectedKey];
+
+            if (!recipe) return;
+
+            // Create a modal dialog with all steps
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;';
+
+            const content = document.createElement('div');
+            content.style.cssText = 'background: white; border-radius: 8px; padding: 20px; max-width: 700px; max-height: 80vh; overflow-y: auto;';
+
+            // Build steps HTML
+            let stepsHTML = '';
+            recipe.steps.forEach((step, index) => {
+                const timerText = step.timer
+                    ? `⏱️ ${step.timer.duration} דקות - ${step.timer.label}`
+                    : '⏱️ ללא טיימר';
+                const tempText = step.temperature ? `🌡️ ${step.temperature}` : '';
+                const ingredientsHTML = step.ingredients
+                    ? `<div style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 6px;">
+                        <strong>🥖 מרכיבים:</strong><br>
+                        ${step.ingredients.map(ing => `• ${ing}`).join('<br>')}
+                       </div>`
+                    : '';
+
+                stepsHTML += `
+                    <div style="border-bottom: 1px solid #ddd; padding: 12px 0;">
+                        <div style="font-weight: 600; color: #8b4513; margin-bottom: 4px;">
+                            ${index + 1}. ${step.title}
+                        </div>
+                        <div style="font-size: 0.85em; color: #666; margin-bottom: 4px;">
+                            ${step.content}
+                        </div>
+                        ${ingredientsHTML}
+                        <div style="font-size: 0.8em; color: #999; margin-top: 4px;">
+                            ${timerText} ${tempText}
+                        </div>
+                        ${step.tips ? `<div style="font-size: 0.8em; color: #4caf50; margin-top: 4px;">💡 ${step.tips}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            content.innerHTML = `
+                <h3 style="margin-top: 0; color: #8b4513; text-align: center;">${recipe.name}</h3>
+                <div style="text-align: center; color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                    ${recipe.description}<br>
+                    <strong>⏱️ ${recipe.totalTime}</strong> • <strong>📊 ${recipe.difficulty}</strong> • <strong>🔢 ${recipe.steps.length} שלבים</strong>
+                </div>
+                <div style="max-height: 50vh; overflow-y: auto;">
+                    ${stepsHTML}
+                </div>
+                <button onclick="closeRecipeDetailsModal()" style="width: 100%; background: #666; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 15px;">
+                    ✖️ סגור
+                </button>
+            `;
+
+            modal.appendChild(content);
+            modal.id = 'recipeDetailsModal';
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeRecipeDetailsModal();
+                }
+            });
+        }
+
+        function closeRecipeDetailsModal() {
+            const modal = document.getElementById('recipeDetailsModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function selectRecipe(recipeKey) {
+            if (!recipeLibrary[recipeKey]) {
+                alert('❌ מתכון לא נמצא!');
+                return;
+            }
+
+            const recipe = recipeLibrary[recipeKey];
+            const confirmMsg = `האם לטעון את המתכון "${recipe.name}"?\n\n${recipe.description}\nזמן כולל: ${recipe.totalTime}\nרמת קושי: ${recipe.difficulty}\n\nכל הלחמים הקיימים יאופסו.`;
+
+            if (confirm(confirmMsg)) {
+                currentRecipeKey = recipeKey;
+                recipeSteps = recipe.steps;
                 breads = {};
                 currentBreadId = null;
                 breadCounter = 0;
+
+                // Save selected recipe
+                localStorage.setItem('selectedRecipe', recipeKey);
+
+                // Update the selector to match
+                const selector = document.getElementById('recipeSelector');
+                if (selector) {
+                    selector.value = recipeKey;
+                }
 
                 // Hide the recipe loader
                 const section = document.getElementById('recipeLoaderSection');
@@ -1628,7 +2025,111 @@
                 renderStep();
                 updateActiveTimersIndicator();
 
-                alert('✅ חזרנו למתכון המקורי!');
+                alert(`✅ המתכון "${recipe.name}" נטען בהצלחה!`);
+            } else {
+                // User cancelled - revert selector to current recipe
+                const selector = document.getElementById('recipeSelector');
+                if (selector) {
+                    selector.value = currentRecipeKey;
+                }
+            }
+        }
+
+        function resetToDefaultRecipe() {
+            selectRecipe('sourdough');
+        }
+
+        function showAIPrompt() {
+            const prompt = `Create a bread recipe in the following JSON format. The recipe should be detailed, step-by-step, and include timers for each waiting period.
+
+Requirements:
+1. Recipe must be in Hebrew (right-to-left)
+2. Each step should have:
+   - title: Short step name (e.g., "ערבוב מרכיבים", "קיפול ראשון")
+   - content: Detailed instructions for this step
+   - ingredients: Array of ingredients with amounts (ONLY in first step, null for others)
+   - timer: {duration: minutes, label: "description"} or null if no waiting
+   - temperature: Temperature info as string or null
+   - tips: Helpful tips or null
+3. Include ALL steps from start to finish: mixing, resting, folding, shaping, proofing, baking, cooling
+4. Timer durations should be realistic (in minutes)
+5. Maximum 20 steps
+
+Return ONLY valid JSON array in this format:
+[
+    {
+        "title": "Step name in Hebrew",
+        "content": "Detailed instructions in Hebrew",
+        "ingredients": ["ingredient 1 with amount", "ingredient 2"] or null,
+        "timer": {"duration": 30, "label": "Timer label in Hebrew"} or null,
+        "temperature": "Temperature info in Hebrew" or null,
+        "tips": "Helpful tips in Hebrew" or null
+    },
+    // ... more steps
+]
+
+IMPORTANT: Return ONLY the JSON array, no explanations or markdown code blocks.
+
+Example request: "Create a recipe for whole wheat sandwich bread"`;
+
+            // Create a modal dialog
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px;';
+
+            const content = document.createElement('div');
+            content.style.cssText = 'background: white; border-radius: 8px; padding: 20px; max-width: 600px; max-height: 80vh; overflow-y: auto; direction: ltr;';
+
+            content.innerHTML = `
+                <h3 style="margin-top: 0; color: #333; text-align: center;">🤖 AI Prompt for Creating New Recipes</h3>
+                <p style="color: #666; font-size: 0.9em; text-align: center; margin-bottom: 15px;">
+                    Copy this prompt and paste it into ChatGPT, Claude, or any AI.<br>
+                    Then paste the AI's JSON output into the <strong>📝 Text tab</strong> of the recipe loader.
+                </p>
+                <textarea id="promptText" readonly style="width: 100%; min-height: 300px; padding: 10px; border: 2px solid #9c27b0; border-radius: 4px; font-family: monospace; font-size: 0.85em; resize: vertical; direction: ltr; text-align: left;">${prompt}</textarea>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button onclick="copyPromptToClipboard()" style="flex: 1; background: #9c27b0; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer;">
+                        📋 העתק לזיכרון
+                    </button>
+                    <button onclick="closeAIPromptModal()" style="flex: 1; background: #666; color: white; border: none; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer;">
+                        ✖️ סגור
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(content);
+            modal.id = 'aiPromptModal';
+            document.body.appendChild(modal);
+
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeAIPromptModal();
+                }
+            });
+        }
+
+        function copyPromptToClipboard() {
+            const textarea = document.getElementById('promptText');
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                document.execCommand('copy');
+                alert('✅ הפרומפט הועתק לזיכרון!\n\nהדבק אותו ב-ChatGPT, Claude, או כל AI אחר.\nאחר כך הדבק את התשובה בלשונית "📝 טקסט" של טעינת המתכון.');
+            } catch (err) {
+                // Fallback for modern browsers
+                navigator.clipboard.writeText(textarea.value).then(() => {
+                    alert('✅ הפרומפט הועתק לזיכרון!\n\nהדבק אותו ב-ChatGPT, Claude, או כל AI אחר.\nאחר כך הדבק את התשובה בלשונית "📝 טקסט" של טעינת המתכון.');
+                }).catch(() => {
+                    alert('❌ לא הצלחתי להעתיק. אנא בחר את הטקסט והעתק ידנית (Ctrl+C).');
+                });
+            }
+        }
+
+        function closeAIPromptModal() {
+            const modal = document.getElementById('aiPromptModal');
+            if (modal) {
+                modal.remove();
             }
         }
 
@@ -1869,6 +2370,12 @@
 
         // Initialize app
         async function initApp() {
+            // Set recipe selector to current recipe
+            const selector = document.getElementById('recipeSelector');
+            if (selector) {
+                selector.value = currentRecipeKey;
+            }
+
             await loadRecipeFromURL();
             loadProgress();
             startGlobalTimerUpdate();
