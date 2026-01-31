@@ -634,7 +634,7 @@
             </div>
 
             <!-- Recipe Selector -->
-            <div style="background: rgba(139, 69, 19, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+            <div id="recipeSelectorSection" style="background: rgba(139, 69, 19, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
                 <div style="font-weight: 600; margin-bottom: 8px; color: #d4a574; font-size: 0.9em;">
                     📚 בחר מתכון
                 </div>
@@ -1517,6 +1517,7 @@
             // Always update all timer displays in real-time
             updateGlobalTimersDisplay();
             updateStickyBreadSelectorTimers();
+            updateActiveTimersIndicator(); // Update sticky header timers in real-time
         }
 
         function updateStickyBreadSelectorTimers() {
@@ -1642,6 +1643,7 @@
             currentBreadId = breadId;
             saveProgress();
             updateActiveTimersIndicator(); // Update the header bread list
+            updateRecipeSelectorVisibility(); // Hide recipe selector when bread is created
             renderStep();
         }
 
@@ -1717,6 +1719,7 @@
 
             saveProgress();
             updateActiveTimersIndicator(); // Update the header bread list
+            updateRecipeSelectorVisibility(); // Show recipe selector when all breads are deleted
             renderStep();
         }
 
@@ -1987,6 +1990,18 @@
             const modal = document.getElementById('recipeDetailsModal');
             if (modal) {
                 modal.remove();
+            }
+        }
+
+        function updateRecipeSelectorVisibility() {
+            const recipeSelectorSection = document.getElementById('recipeSelectorSection');
+            if (!recipeSelectorSection) return;
+
+            // Hide recipe selector if there are any active breads
+            if (Object.keys(breads).length > 0) {
+                recipeSelectorSection.style.display = 'none';
+            } else {
+                recipeSelectorSection.style.display = 'block';
             }
         }
 
@@ -2378,6 +2393,7 @@ Example request: "Create a recipe for whole wheat sandwich bread"`;
 
             await loadRecipeFromURL();
             loadProgress();
+            updateRecipeSelectorVisibility(); // Update visibility based on loaded breads
             startGlobalTimerUpdate();
             renderStep();
         }
